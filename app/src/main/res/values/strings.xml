@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">Sakumi</string>
+    <string name="app_name">Nihonlish</string>
+    <string name="login_title">Đăng nhập</string>
+    <string name="register_title">Đăng ký</string>
+    <string name="forgot_password_title">Quên mật khẩu</string>
+    <string name="email_hint">Email của bạn</string>
+    <string name="password_hint">Mật khẩu</string>
+    <string name="sign_in_with_google">Tiếp tục với Google</string>
+    <string name="app_tagline">日本語を学ぼう</string>
 </resources>
