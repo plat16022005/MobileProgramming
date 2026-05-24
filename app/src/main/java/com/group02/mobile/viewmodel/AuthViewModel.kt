@@ -10,16 +10,21 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.group02.mobile.data.repository.AuthRepository
 import com.group02.mobile.data.repository.AuthResult
+import com.group02.mobile.data.repository.UserProfile
+import com.group02.mobile.data.repository.UserAccount
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
+    val userAccount: UserAccount? = null,
+    val userProfile: UserProfile? = null
 )
 
 class AuthViewModel : ViewModel() {
@@ -58,8 +63,8 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun registerWithEmail(email: String, password: String, displayName: String, confirmPassword: String) {
-        if (email.isBlank() || password.isBlank() || displayName.isBlank()) {
+    fun registerWithEmail(email: String, password: String, confirmPassword: String) {
+        if (email.isBlank() || password.isBlank()) {
             _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng điền đầy đủ thông tin")
             return
         }
@@ -73,7 +78,7 @@ class AuthViewModel : ViewModel() {
         }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            when (val result = repository.registerWithEmail(email, password, displayName)) {
+            when (val result = repository.registerWithEmail(email, password)) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -160,6 +165,101 @@ class AuthViewModel : ViewModel() {
                     )
                 }
                 else -> {}
+            }
+        }
+    }
+
+    fun fetchUserProfile() {
+        val currentUser = repository.currentUser
+        if (currentUser == null) {
+            _uiState.value = _uiState.value.copy(isLoggedIn = false, userAccount = null, userProfile = null)
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            
+            val accountDeferred = async { repository.getUserAccount(currentUser.uid) }
+            val profileDeferred = async { repository.getUserProfile(currentUser.uid) }
+            
+            var account = accountDeferred.await()
+            var profile = profileDeferred.await()
+            
+            if (account == null) {
+                account = UserAccount(
+                    uid = currentUser.uid,
+                    displayName = currentUser.displayName ?: "",
+                    email = currentUser.email ?: ""
+                )
+                repository.saveUserAccount(account)
+            }
+            
+            if (profile == null) {
+                profile = UserProfile(
+                    uid = currentUser.uid,
+                    displayName = currentUser.displayName ?: "",
+                    photoUrl = "🦊" // default emoji avatar
+                )
+                repository.saveUserProfile(profile)
+            }
+            
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                userAccount = account,
+                userProfile = profile
+            )
+        }
+    }
+
+    fun updateUserProfile(
+        displayName: String,
+        phoneNumber: String,
+        birthDate: String,
+        gender: String,
+        studyLevel: String,
+        address: String = "",
+        photoUrl: String = "",
+        onSuccess: () -> Unit = {}
+    ) {
+        val currentAccount = _uiState.value.userAccount ?: return
+        val currentProfile = _uiState.value.userProfile ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            
+            val updatedAccount = currentAccount.copy(
+                displayName = displayName,
+                profileCompleted = true
+            )
+            val updatedProfile = currentProfile.copy(
+                displayName = displayName,
+                phoneNumber = phoneNumber,
+                birthDate = birthDate,
+                gender = gender,
+                studyLevel = studyLevel,
+                address = address,
+                photoUrl = photoUrl
+            )
+            
+            val accResult = repository.saveUserAccount(updatedAccount)
+            val profResult = repository.saveUserProfile(updatedProfile)
+            
+            if (accResult is AuthResult.Success && profResult is AuthResult.Success) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    userAccount = updatedAccount,
+                    userProfile = updatedProfile,
+                    isSuccess = true
+                )
+                onSuccess()
+            } else {
+                val errorMsg = when {
+                    accResult is AuthResult.Error -> accResult.message
+                    profResult is AuthResult.Error -> profResult.message
+                    else -> "Đã xảy ra lỗi khi lưu thông tin"
+                }
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = errorMsg
+                )
             }
         }
     }

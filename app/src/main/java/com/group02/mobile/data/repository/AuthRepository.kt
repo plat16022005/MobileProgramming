@@ -12,14 +12,24 @@ sealed class AuthResult<out T> {
     object Loading : AuthResult<Nothing>()
 }
 
-data class UserProfile(
+data class UserAccount(
     val uid: String = "",
     val displayName: String = "",
     val email: String = "",
-    val photoUrl: String = "",
     val createdAt: Long = System.currentTimeMillis(),
+    val totalPoints: Int = 0,
+    val profileCompleted: Boolean = false
+)
+
+data class UserProfile(
+    val uid: String = "",
+    val displayName: String = "",
+    val photoUrl: String = "",
+    val phoneNumber: String = "",
+    val birthDate: String = "",
+    val gender: String = "",
     val studyLevel: String = "beginner",
-    val totalPoints: Int = 0
+    val address: String = ""
 )
 
 class AuthRepository {
@@ -44,25 +54,21 @@ class AuthRepository {
 
     suspend fun registerWithEmail(
         email: String,
-        password: String,
-        displayName: String
+        password: String
     ): AuthResult<FirebaseUser> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             val user = result.user ?: return AuthResult.Error("Đăng ký thất bại")
 
-            // Update display name
-            val profileUpdates = com.google.firebase.auth.userProfileChangeRequest {
-                this.displayName = displayName
-            }
-            user.updateProfile(profileUpdates).await()
-
-            // Save user profile to Firestore
-            val profile = UserProfile(
+            // Save user account to Firestore (users collection — displayName set later in profile setup)
+            val account = UserAccount(
                 uid = user.uid,
-                displayName = displayName,
                 email = email
             )
+            saveUserAccount(account)
+
+            // Save empty profile placeholder to Firestore (profiles collection)
+            val profile = UserProfile(uid = user.uid)
             saveUserProfile(profile)
 
             AuthResult.Success(user)
@@ -77,13 +83,19 @@ class AuthRepository {
             val result = auth.signInWithCredential(credential).await()
             val user = result.user ?: return AuthResult.Error("Đăng nhập Google thất bại")
 
-            // Check if new user → create profile
+            // Check if new user → create account and profile
             if (result.additionalUserInfo?.isNewUser == true) {
+                val account = UserAccount(
+                    uid = user.uid,
+                    displayName = user.displayName ?: "",
+                    email = user.email ?: ""
+                )
+                saveUserAccount(account)
+
                 val profile = UserProfile(
                     uid = user.uid,
                     displayName = user.displayName ?: "",
-                    email = user.email ?: "",
-                    photoUrl = user.photoUrl?.toString() ?: ""
+                    photoUrl = "🦊" // default emoji avatar
                 )
                 saveUserProfile(profile)
             }
@@ -107,11 +119,46 @@ class AuthRepository {
         auth.signOut()
     }
 
-    private suspend fun saveUserProfile(profile: UserProfile) {
-        firestore.collection("users")
-            .document(profile.uid)
-            .set(profile)
-            .await()
+    suspend fun saveUserAccount(account: UserAccount): AuthResult<Unit> {
+        return try {
+            firestore.collection("users")
+                .document(account.uid)
+                .set(account)
+                .await()
+            AuthResult.Success(Unit)
+        } catch (e: Exception) {
+            AuthResult.Error(mapFirebaseError(e.message))
+        }
+    }
+
+    suspend fun getUserAccount(uid: String): UserAccount? {
+        return try {
+            val document = firestore.collection("users").document(uid).get().await()
+            document.toObject(UserAccount::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun saveUserProfile(profile: UserProfile): AuthResult<Unit> {
+        return try {
+            firestore.collection("profiles")
+                .document(profile.uid)
+                .set(profile)
+                .await()
+            AuthResult.Success(Unit)
+        } catch (e: Exception) {
+            AuthResult.Error(mapFirebaseError(e.message))
+        }
+    }
+
+    suspend fun getUserProfile(uid: String): UserProfile? {
+        return try {
+            val document = firestore.collection("profiles").document(uid).get().await()
+            document.toObject(UserProfile::class.java)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun mapFirebaseError(message: String?): String {

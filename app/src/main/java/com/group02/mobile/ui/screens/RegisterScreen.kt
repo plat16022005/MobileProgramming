@@ -41,7 +41,6 @@ fun RegisterScreen(
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
-    var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -125,11 +124,6 @@ fun RegisterScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Level selector (decorative)
-            LevelSelectorRow()
-
             Spacer(modifier = Modifier.height(20.dp))
 
             // Card
@@ -140,21 +134,6 @@ fun RegisterScreen(
                 border = BorderStroke(1.dp, CardBorder)
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-
-                    // Display Name
-                    NihonTextField(
-                        value = displayName,
-                        onValueChange = { displayName = it },
-                        label = "Tên hiển thị",
-                        placeholder = "Tên của bạn",
-                        leadingIcon = Icons.Outlined.Person,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(
-                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Email
                     NihonTextField(
@@ -294,7 +273,7 @@ fun RegisterScreen(
                         onClick = {
                             focusManager.clearFocus()
                             viewModel.clearError()
-                            viewModel.registerWithEmail(email, password, displayName, confirmPassword)
+                            viewModel.registerWithEmail(email, password, confirmPassword)
                         }
                     )
 
