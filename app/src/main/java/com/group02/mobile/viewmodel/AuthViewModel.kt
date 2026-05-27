@@ -24,7 +24,8 @@ data class AuthUiState(
     val errorMessage: String? = null,
     val isLoggedIn: Boolean = false,
     val userAccount: UserAccount? = null,
-    val userProfile: UserProfile? = null
+    val userProfile: UserProfile? = null,
+    val hasPasswordProvider: Boolean = false
 )
 
 class AuthViewModel : ViewModel() {
@@ -34,7 +35,12 @@ class AuthViewModel : ViewModel() {
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
-        _uiState.value = AuthUiState(isLoggedIn = repository.isLoggedIn)
+        val currentUser = repository.currentUser
+        val hasPassword = currentUser?.providerData?.any { it.providerId == com.google.firebase.auth.EmailAuthProvider.PROVIDER_ID } ?: false
+        _uiState.value = AuthUiState(
+            isLoggedIn = repository.isLoggedIn,
+            hasPasswordProvider = hasPassword
+        )
     }
 
     fun signInWithEmail(email: String, password: String) {
@@ -169,6 +175,39 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String) {
+        if (currentPassword.isBlank() || newPassword.isBlank() || confirmPassword.isBlank()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Vui lòng nhập đầy đủ thông tin")
+            return
+        }
+        if (newPassword != confirmPassword) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Mật khẩu xác nhận không khớp")
+            return
+        }
+        if (newPassword.length < 6) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Mật khẩu mới phải có ít nhất 6 ký tự")
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            when (val result = repository.changePassword(currentPassword, newPassword)) {
+                is AuthResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isSuccess = true
+                    )
+                }
+                is AuthResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = result.message
+                    )
+                }
+                else -> {}
+            }
+        }
+    }
+
     fun fetchUserProfile() {
         val currentUser = repository.currentUser
         if (currentUser == null) {
@@ -202,10 +241,13 @@ class AuthViewModel : ViewModel() {
                 repository.saveUserProfile(profile)
             }
             
+            val hasPassword = currentUser.providerData.any { it.providerId == com.google.firebase.auth.EmailAuthProvider.PROVIDER_ID }
+            
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 userAccount = account,
-                userProfile = profile
+                userProfile = profile,
+                hasPasswordProvider = hasPassword
             )
         }
     }

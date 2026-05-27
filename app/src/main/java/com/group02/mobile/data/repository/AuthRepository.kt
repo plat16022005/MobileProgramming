@@ -161,6 +161,30 @@ class AuthRepository {
         }
     }
 
+    suspend fun changePassword(currentPassword: String, newPassword: String): AuthResult<Unit> {
+        return try {
+            val user = auth.currentUser ?: return AuthResult.Error("Người dùng chưa đăng nhập")
+            
+            // Check if user has email provider
+            val hasPasswordProvider = user.providerData.any { it.providerId == com.google.firebase.auth.EmailAuthProvider.PROVIDER_ID }
+            if (!hasPasswordProvider) {
+                return AuthResult.Error("Tài khoản đăng nhập bằng Google hoặc phương thức khác không thể đổi mật khẩu tại đây.")
+            }
+
+            val email = user.email ?: return AuthResult.Error("Không tìm thấy email")
+            
+            // Re-authenticate
+            val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(email, currentPassword)
+            user.reauthenticate(credential).await()
+            
+            // Update password
+            user.updatePassword(newPassword).await()
+            AuthResult.Success(Unit)
+        } catch (e: Exception) {
+            AuthResult.Error(mapFirebaseError(e.message))
+        }
+    }
+
     private fun mapFirebaseError(message: String?): String {
         if (message == null) return "Đã xảy ra lỗi không xác định"
         

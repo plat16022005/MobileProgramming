@@ -111,12 +111,12 @@ fun HomeScreen(
                                 .border(1.dp, CardBorder, RoundedCornerShape(8.dp))
                         ) {
                             DropdownMenuItem(
-                                text = { 
+                                text = {
                                     Text(
-                                        text = "Xem thông tin", 
+                                        text = "Xem thông tin",
                                         color = TextPrimary,
                                         fontFamily = NotoSansJP
-                                    ) 
+                                    )
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -131,12 +131,12 @@ fun HomeScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { 
+                                text = {
                                     Text(
-                                        text = "Đăng xuất", 
+                                        text = "Đăng xuất",
                                         color = NihonRedLight,
                                         fontFamily = NotoSansJP
-                                    ) 
+                                    )
                                 },
                                 leadingIcon = {
                                     Icon(

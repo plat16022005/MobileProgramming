@@ -2,6 +2,7 @@ package com.group02.mobile.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -38,7 +40,8 @@ import com.group02.mobile.viewmodel.AuthViewModel
 fun ProfileScreen(
     viewModel: AuthViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToEdit: () -> Unit
+    onNavigateToEdit: () -> Unit,
+    onNavigateToChangePassword: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val account = uiState.userAccount
@@ -237,6 +240,36 @@ fun ProfileScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )
+                    }
+
+                    if (uiState.hasPasswordProvider) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // --- CHANGE PASSWORD BUTTON ---
+                        OutlinedButton(
+                            onClick = onNavigateToChangePassword,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = SakuraPink
+                            ),
+                            border = BorderStroke(1.dp, SakuraPink)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Đổi mật khẩu",
+                                fontFamily = NotoSansJP,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
             }

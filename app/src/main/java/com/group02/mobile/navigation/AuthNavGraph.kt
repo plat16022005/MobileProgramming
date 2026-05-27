@@ -223,6 +223,33 @@ fun AuthNavGraph() {
                 },
                 onNavigateToEdit = {
                     navController.navigate(AuthScreen.SetupProfile.route)
+                },
+                onNavigateToChangePassword = {
+                    navController.navigate(AuthScreen.ChangePassword.route)
+                }
+            )
+        }
+
+        // ── Change Password ──────────────────────────────────────
+        composable(
+            route = AuthScreen.ChangePassword.route,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeIn(animationSpec = tween(350))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeOut(animationSpec = tween(350))
+            }
+        ) {
+            ChangePasswordScreen(
+                viewModel = authViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
