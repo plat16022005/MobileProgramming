@@ -1,6 +1,7 @@
 package com.group02.mobile.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -37,6 +38,7 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
+    var showTermsDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
@@ -229,7 +231,9 @@ fun RegisterScreen(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             fontFamily = NotoSansJP,
-                            modifier = Modifier.clickable { }
+                            modifier = Modifier.clickable {
+                                showTermsDialog = true
+                            }
                         )
                     }
 
@@ -325,6 +329,38 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+    if (showTermsDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showTermsDialog = false
+            },
+            title = {
+                Text("Điều khoản sử dụng")
+            },
+            text = {
+                Text(
+                    """
+                1. Người dùng cần cung cấp thông tin chính xác khi đăng ký tài khoản.
+
+                2. Ứng dụng chỉ sử dụng thông tin người dùng cho mục đích học tập và quản lý tài khoản.
+
+                3. Người dùng không được sử dụng ứng dụng cho các mục đích vi phạm pháp luật.
+
+                4. Nội dung bài học, từ vựng và câu hỏi chỉ phục vụ mục đích học tiếng Nhật.
+                """.trimIndent()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showTermsDialog = false
+                    }
+                ) {
+                    Text("Đồng ý")
+                }
+            }
+        )
     }
 }
 
