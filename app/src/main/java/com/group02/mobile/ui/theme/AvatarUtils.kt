@@ -1,6 +1,6 @@
 package com.group02.mobile.ui.theme
 
-const val DEFAULT_AVATAR = "🦊"
+const val DEFAULT_AVATAR = "👤"
 
 /**
  * Returns a safe emoji avatar string.

@@ -18,6 +18,7 @@ import com.group02.mobile.ui.theme.SakumiTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.group02.mobile.utils.TtsManager.init(this)
         enableEdgeToEdge()
         setContent {
             SakumiTheme {
@@ -37,5 +38,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        com.group02.mobile.utils.TtsManager.shutdown()
     }
 }

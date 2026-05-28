@@ -69,9 +69,8 @@ class KanaViewModel : ViewModel() {
         _quizTotalAnswered.value = 0
     }
 
-    fun nextCard() {
-        val row = _selectedRow.value ?: return
-        if (_currentCardIndex.value < row.characters.size - 1) {
+    fun nextCard(size: Int) {
+        if (_currentCardIndex.value < size - 1) {
             _currentCardIndex.value++
             _isCardFlipped.value = false
         }
@@ -151,9 +150,8 @@ class KanaViewModel : ViewModel() {
         _isChallengeRunning.value = false
     }
 
-    fun nextWritingChar() {
-        val row = _selectedRow.value ?: return
-        if (_currentWritingCharIndex.value < row.characters.size - 1) {
+    fun nextWritingChar(size: Int) {
+        if (_currentWritingCharIndex.value < size - 1) {
             _currentWritingCharIndex.value++
         }
     }

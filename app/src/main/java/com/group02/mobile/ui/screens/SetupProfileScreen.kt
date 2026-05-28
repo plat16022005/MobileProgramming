@@ -24,15 +24,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.Image
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import android.Manifest
+import android.os.Build
+import coil.compose.AsyncImage
 import com.group02.mobile.ui.theme.*
 import com.group02.mobile.viewmodel.AuthViewModel
 import java.util.Locale
 
-private val AVATAR_LIST = listOf(
-    "🦊", "🐱", "🐼", "🦁", "🐨",
-    "💮", "🎏", "👹", "🌸", "🏯",
-    "🦄", "🐯", "🐸", "🦋", "🎐"
-)
 
 private val GENDER_LIST = listOf("Nam", "Nữ", "Khác")
 
@@ -56,6 +60,22 @@ fun SetupProfileScreen(
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
+    val isUploadingAvatar by viewModel.isUploadingAvatar.collectAsState()
+    val context = LocalContext.current
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.uploadAndSaveAvatar(it, context) }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            imagePickerLauncher.launch("image/*")
+        }
+    }
 
     // ── Form states ───────────────────────────────────
 
@@ -250,71 +270,71 @@ fun SetupProfileScreen(
             ) {
 
                 // ── Avatar Preview ──────────────────────
+                
+                val currentProfile = uiState.userProfile
+                val displayAvatarUrl = currentProfile?.avatarUrl ?: ""
 
                 Box(
                     modifier = Modifier
                         .size(100.dp)
-
                         .clip(CircleShape)
-
                         .background(InkDark)
-
-                        .border(
-                            2.dp,
-                            NihonRedLight,
-                            CircleShape
-                        ),
-
+                        .border(2.dp, NihonRedLight, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-
-                    Text(
-                        text = selectedAvatar,
-                        fontSize = 56.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Chọn avatar bên dưới",
-
-                    fontFamily = NotoSansJP,
-
-                    color = TextHint,
-
-                    fontSize = 12.sp
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // ── Avatar Grid ─────────────────────────
-
-                AVATAR_LIST.chunked(5).forEach { row ->
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-
-                        horizontalArrangement =
-                            Arrangement.SpaceEvenly
-                    ) {
-
-                        row.forEach { emoji ->
-
-                            AvatarItem(
-                                avatar = emoji,
-
-                                isSelected =
-                                    selectedAvatar == emoji,
-
-                                onClick = {
-                                    selectedAvatar = emoji
-                                }
-                            )
-                        }
+                    if (displayAvatarUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = displayAvatarUrl,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape)
+                        )
+                    } else {
+                        Text(
+                            text = selectedAvatar,
+                            fontSize = 56.sp
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    if (isUploadingAvatar) {
+                        CircularProgressIndicator(
+                            color = SakuraPink,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            Manifest.permission.READ_MEDIA_IMAGES
+                        } else {
+                            Manifest.permission.READ_EXTERNAL_STORAGE
+                        }
+                        permissionLauncher.launch(permission)
+                    },
+                    modifier = Modifier.height(44.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = TextPrimary,
+                        containerColor = InkDark
+                    ),
+                    border = BorderStroke(1.dp, CardBorder)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = "Thay đổi ảnh đại diện",
+                        tint = SakuraPink,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Thay đổi ảnh đại diện",
+                        fontFamily = NotoSansJP,
+                        fontSize = 14.sp
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

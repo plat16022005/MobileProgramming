@@ -206,7 +206,7 @@ fun WritingPracticeScreen(
 
                     Button(
                         onClick = {
-                            viewModel.nextWritingChar()
+                            viewModel.nextWritingChar(row.characters.size)
                             paths.clear()
                             currentPath = null
                         },

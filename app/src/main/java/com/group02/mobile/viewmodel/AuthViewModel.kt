@@ -248,7 +248,8 @@ class AuthViewModel : ViewModel() {
                 profile = UserProfile(
                     uid = currentUser.uid,
                     displayName = currentUser.displayName ?: "",
-                    photoUrl = "🦊" // default emoji avatar
+                    photoUrl = "👤", // default human emoji avatar
+                    avatarUrl = currentUser.photoUrl?.toString() ?: "" // Google avatar
                 )
                 repository.saveUserProfile(profile)
             }

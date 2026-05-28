@@ -15,6 +15,11 @@ import com.group02.mobile.data.model.alphabet.KanaType
 import com.group02.mobile.data.repository.KanaRepository
 import com.group02.mobile.ui.theme.*
 import com.group02.mobile.viewmodel.KanaViewModel
+import com.group02.mobile.utils.TtsManager
+import androidx.compose.ui.platform.LocalContext
+import java.util.Locale
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +32,9 @@ fun StudyScreen(
     val row = KanaRepository.getRowById(rowId) ?: return
     var currentIndex by remember { mutableStateOf(0) }
     val char = row.characters.getOrNull(currentIndex) ?: return
+
+    val context = LocalContext.current
+
 
     Box(
         modifier = Modifier
@@ -87,6 +95,25 @@ fun StudyScreen(
                     fontFamily = NotoSansJP
                 )
                 
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                IconButton(
+                    onClick = {
+                        val textToRead = KanaRepository.getCharacterDisplay(char, kanaType)
+                        TtsManager.speak(context, textToRead, char.romaji)
+                    },
+                    modifier = Modifier
+                        .background(InkDark, RoundedCornerShape(50))
+                        .padding(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VolumeUp,
+                        contentDescription = "Phát âm",
+                        tint = SakuraPink,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                
                 Spacer(modifier = Modifier.height(32.dp))
                 HorizontalDivider(color = CardBorder)
                 Spacer(modifier = Modifier.height(32.dp))
@@ -99,13 +126,25 @@ fun StudyScreen(
                         fontFamily = NotoSansJP
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = char.exampleWord,
-                        fontSize = 32.sp,
-                        color = TextPrimary,
-                        fontFamily = NotoSansJP,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = char.exampleWord,
+                            fontSize = 32.sp,
+                            color = TextPrimary,
+                            fontFamily = NotoSansJP,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(onClick = {
+                            TtsManager.speak(context, char.exampleWord, char.exampleWordRomaji)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.VolumeUp,
+                                contentDescription = "Phát âm",
+                                tint = SakuraPink
+                            )
+                        }
+                    }
                     Text(
                         text = char.exampleWordRomaji,
                         fontSize = 16.sp,

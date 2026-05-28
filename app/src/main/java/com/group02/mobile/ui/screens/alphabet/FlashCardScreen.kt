@@ -181,7 +181,7 @@ fun FlashCardScreen(
                     )
                     
                     Button(
-                        onClick = { viewModel.nextCard() },
+                        onClick = { viewModel.nextCard(row.characters.size) },
                         enabled = currentIndex < row.characters.size - 1,
                         colors = ButtonDefaults.buttonColors(containerColor = NihonRedLight)
                     ) {

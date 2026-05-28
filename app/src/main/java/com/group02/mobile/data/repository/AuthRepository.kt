@@ -70,7 +70,7 @@ class AuthRepository {
             saveUserAccount(account)
 
             // Save empty profile placeholder to Firestore (profiles collection)
-            val profile = UserProfile(uid = user.uid)
+            val profile = UserProfile(uid = user.uid, photoUrl = "👤")
             saveUserProfile(profile)
 
             AuthResult.Success(user)
@@ -97,7 +97,8 @@ class AuthRepository {
                 val profile = UserProfile(
                     uid = user.uid,
                     displayName = user.displayName ?: "",
-                    photoUrl = "🦊" // default emoji avatar
+                    photoUrl = "👤", // default human emoji avatar
+                    avatarUrl = user.photoUrl?.toString() ?: "" // Google avatar
                 )
                 saveUserProfile(profile)
             }
