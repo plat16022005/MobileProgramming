@@ -1,7 +1,9 @@
 package com.group02.mobile.viewmodel
 
 import android.content.Context
+
 import android.net.Uri
+
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
@@ -33,6 +35,7 @@ class AuthViewModel : ViewModel() {
     private val repository = AuthRepository()
     private val cloudinaryService = com.group02.mobile.data.remote.CloudinaryService()
 
+
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
@@ -41,6 +44,7 @@ class AuthViewModel : ViewModel() {
 
     private val _uploadAvatarError = MutableStateFlow<String?>(null)
     val uploadAvatarError: StateFlow<String?> = _uploadAvatarError.asStateFlow()
+
 
     init {
         val currentUser = repository.currentUser
@@ -326,7 +330,6 @@ class AuthViewModel : ViewModel() {
     fun resetSuccess() {
         _uiState.value = _uiState.value.copy(isSuccess = false)
     }
-
     fun uploadAndSaveAvatar(imageUri: Uri, context: Context) {
         val currentUser = repository.currentUser ?: return
         viewModelScope.launch {
@@ -354,4 +357,5 @@ class AuthViewModel : ViewModel() {
             _isUploadingAvatar.value = false
         }
     }
+
 }

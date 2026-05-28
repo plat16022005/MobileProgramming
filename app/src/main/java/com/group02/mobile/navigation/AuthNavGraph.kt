@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.group02.mobile.ui.screens.*
@@ -32,6 +33,7 @@ fun AuthNavGraph() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val kanaViewModel: KanaViewModel = viewModel()
+
 
     NavHost(
         navController = navController,
@@ -174,6 +176,7 @@ fun AuthNavGraph() {
                 onNavigateToAlphabet = {
                     navController.navigate(AlphabetRoutes.ALPHABET_HOME)
                 },
+
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate(AuthScreen.Login.route) {
@@ -273,7 +276,6 @@ fun AuthNavGraph() {
                 }
             )
         }
-
         // ── Alphabet Module ──────────────────────────────────────
         composable(
             route = AlphabetRoutes.ALPHABET_HOME,

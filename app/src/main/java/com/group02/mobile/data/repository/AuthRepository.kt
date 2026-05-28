@@ -31,6 +31,7 @@ data class UserProfile(
     val studyLevel: String = "beginner",
     val address: String = "",
     val avatarUrl: String = ""
+
 )
 
 class AuthRepository {

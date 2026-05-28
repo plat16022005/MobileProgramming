@@ -217,8 +217,7 @@ fun HomeScreen(
                             color = TextHint,
                             fontFamily = NotoSansJP,
                             textAlign = TextAlign.Center
-                        )
-                        
+                        )     
                         Spacer(modifier = Modifier.height(32.dp))
                         
                         Card(
