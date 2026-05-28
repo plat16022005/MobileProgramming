@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "301401160677",
+    "project_id": "nihonlish",
+    "storage_bucket": "nihonlish.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:301401160677:android:fd4832e55526c8fd8d8d0c",
+        "android_client_info": {
+          "package_name": "com.plat.nihonlish"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8L7hTAd2ylHGdm2EmqMqM-gwXfw2YKsM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
