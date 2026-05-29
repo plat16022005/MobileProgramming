@@ -377,7 +377,7 @@ private fun LevelSelectorRow() {
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Trình độ của bạn",
+            text = "Mục tiêu của bạn",
             color = TextSecondary,
             fontSize = 12.sp,
             fontFamily = NotoSansJP

@@ -41,7 +41,6 @@ import java.util.Locale
 private val GENDER_LIST = listOf("Nam", "Nữ", "Khác")
 
 private val LEVEL_LIST = listOf(
-    "Beginner",
     "N5",
     "N4",
     "N3",
@@ -100,8 +99,8 @@ fun SetupProfileScreen(
 
     var studyLevel by remember {
         mutableStateOf(
-            uiState.userProfile?.studyLevel?.ifEmpty { "Beginner" }
-                ?: "Beginner"
+            uiState.userProfile?.studyLevel?.ifEmpty { "N5" }
+                ?: "N5"
         )
     }
 
@@ -547,9 +546,9 @@ fun SetupProfileScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // ── Trình độ ────────────────────────────
+                // ── Mục tiêu ────────────────────────────
 
-                SectionLabel("Trình độ tiếng Nhật")
+                SectionLabel("Mục tiêu của bạn")
 
                 Spacer(modifier = Modifier.height(8.dp))
 

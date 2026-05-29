@@ -6,5 +6,8 @@ data class KanaCharacter(
     val romaji: String,
     val exampleWord: String = "",
     val exampleWordRomaji: String = "",
-    val exampleWordMeaning: String = ""
+    val exampleWordMeaning: String = "",
+    val exampleWordKatakana: String = "",
+    val exampleWordKatakanaRomaji: String = "",
+    val exampleWordKatakanaMeaning: String = ""
 )

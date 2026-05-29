@@ -213,7 +213,7 @@ fun ProfileScreen(
                             .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "Trình độ: ${profile.studyLevel}",
+                            text = "Mục tiêu: ${profile.studyLevel}",
                             color = SakuraPink,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,

@@ -129,16 +129,19 @@ fun FlashCardScreen(
                                     fontFamily = NotoSansJP,
                                     fontWeight = FontWeight.Bold
                                 )
-                                if (char.exampleWord.isNotEmpty()) {
+                                val exampleWord = if (kanaType == KanaType.KATAKANA && char.exampleWordKatakana.isNotEmpty()) char.exampleWordKatakana else char.exampleWord
+                                val exampleMeaning = if (kanaType == KanaType.KATAKANA && char.exampleWordKatakana.isNotEmpty()) char.exampleWordKatakanaMeaning else char.exampleWordMeaning
+
+                                if (exampleWord.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(24.dp))
                                     Text(
-                                        text = char.exampleWord,
+                                        text = exampleWord,
                                         fontSize = 24.sp,
                                         color = TextSecondary,
                                         fontFamily = NotoSansJP
                                     )
                                     Text(
-                                        text = char.exampleWordMeaning,
+                                        text = exampleMeaning,
                                         fontSize = 16.sp,
                                         color = NihonRedLight,
                                         fontFamily = NotoSansJP,

@@ -15,6 +15,8 @@ import com.group02.mobile.ui.screens.*
 import com.group02.mobile.ui.screens.alphabet.*
 import com.group02.mobile.viewmodel.AuthViewModel
 import com.group02.mobile.viewmodel.KanaViewModel
+import com.group02.mobile.viewmodel.KanjiViewModel
+import com.group02.mobile.viewmodel.DictionaryViewModel
 import com.group02.mobile.data.model.alphabet.KanaType
 
 object AlphabetRoutes {
@@ -33,8 +35,8 @@ fun AuthNavGraph() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val kanaViewModel: KanaViewModel = viewModel()
-
-
+    val kanjiViewModel: KanjiViewModel = viewModel()
+    val dictionaryViewModel: DictionaryViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = AuthScreen.Splash.route
@@ -175,6 +177,12 @@ fun AuthNavGraph() {
                 },
                 onNavigateToAlphabet = {
                     navController.navigate(AlphabetRoutes.ALPHABET_HOME)
+                },
+                onNavigateToKanjiList = {
+                    navController.navigate(AuthScreen.KanjiList.route)
+                },
+                onNavigateToDictionary = {
+                    navController.navigate(AuthScreen.Dictionary.route)
                 },
 
                 onSignOut = {
@@ -452,6 +460,84 @@ fun AuthNavGraph() {
                 kanaType = kanaType,
                 viewModel = kanaViewModel,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // ── Kanji List ──────────────────────────────────────────
+        composable(
+            route = AuthScreen.KanjiList.route,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeIn(animationSpec = tween(350))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeOut(animationSpec = tween(350))
+            }
+        ) {
+            KanjiListScreen(
+                viewModel = kanjiViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onKanjiClick = { kanji ->
+                    navController.navigate(AuthScreen.KanjiDetail.createRoute(kanji))
+                }
+            )
+        }
+
+        // ── Kanji Detail ──────────────────────────────────────────
+        composable(
+            route = AuthScreen.KanjiDetail.route,
+            arguments = listOf(navArgument("kanji") { type = NavType.StringType }),
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeIn(animationSpec = tween(350))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeOut(animationSpec = tween(350))
+            }
+        ) { backStackEntry ->
+            val kanji = backStackEntry.arguments?.getString("kanji") ?: ""
+            KanjiDetailScreen(
+                kanji = kanji,
+                viewModel = kanjiViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // ── Dictionary ────────────────────────────────────────────
+        composable(
+            route = AuthScreen.Dictionary.route,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeIn(animationSpec = tween(350))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeOut(animationSpec = tween(350))
+            }
+        ) {
+            DictionaryScreen(
+                viewModel = dictionaryViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
             )
         }
     }

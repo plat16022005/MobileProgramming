@@ -118,7 +118,11 @@ fun StudyScreen(
                 HorizontalDivider(color = CardBorder)
                 Spacer(modifier = Modifier.height(32.dp))
                 
-                if (char.exampleWord.isNotEmpty()) {
+                val exampleWord = if (kanaType == KanaType.KATAKANA && char.exampleWordKatakana.isNotEmpty()) char.exampleWordKatakana else char.exampleWord
+                val exampleRomaji = if (kanaType == KanaType.KATAKANA && char.exampleWordKatakana.isNotEmpty()) char.exampleWordKatakanaRomaji else char.exampleWordRomaji
+                val exampleMeaning = if (kanaType == KanaType.KATAKANA && char.exampleWordKatakana.isNotEmpty()) char.exampleWordKatakanaMeaning else char.exampleWordMeaning
+
+                if (exampleWord.isNotEmpty()) {
                     Text(
                         text = "Ví dụ:",
                         fontSize = 14.sp,
@@ -128,7 +132,7 @@ fun StudyScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = char.exampleWord,
+                            text = exampleWord,
                             fontSize = 32.sp,
                             color = TextPrimary,
                             fontFamily = NotoSansJP,
@@ -136,7 +140,7 @@ fun StudyScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(onClick = {
-                            TtsManager.speak(context, char.exampleWord, char.exampleWordRomaji)
+                            TtsManager.speak(context, exampleWord, exampleRomaji)
                         }) {
                             Icon(
                                 imageVector = Icons.Default.VolumeUp,
@@ -146,13 +150,13 @@ fun StudyScreen(
                         }
                     }
                     Text(
-                        text = char.exampleWordRomaji,
+                        text = exampleRomaji,
                         fontSize = 16.sp,
                         color = TextSecondary,
                         fontFamily = NotoSansJP
                     )
                     Text(
-                        text = char.exampleWordMeaning,
+                        text = exampleMeaning,
                         fontSize = 18.sp,
                         color = NihonRedLight,
                         fontFamily = NotoSansJP

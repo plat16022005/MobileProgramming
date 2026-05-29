@@ -32,6 +32,8 @@ fun HomeScreen(
     onNavigateToSetupProfile: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToAlphabet: () -> Unit,
+    onNavigateToKanjiList: () -> Unit,
+    onNavigateToDictionary: () -> Unit,
     onSignOut: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -196,7 +198,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Trình độ của bạn: ${userProfile.studyLevel}",
+                            text = "Mục tiêu của bạn: ${userProfile.studyLevel}",
                             fontSize = 16.sp,
                             color = SakuraPink,
                             fontFamily = NotoSansJP,
@@ -251,6 +253,88 @@ fun HomeScreen(
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "Học bảng chữ cái Nhật Bản",
+                                        color = TextSecondary,
+                                        fontSize = 14.sp,
+                                        fontFamily = NotoSansJP
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigateToKanjiList() },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = InkDark),
+                            border = BorderStroke(1.dp, CardBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "漢字",
+                                    fontSize = 32.sp,
+                                    color = SakuraPink
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        text = "Kanji",
+                                        color = TextPrimary,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = NotoSansJP
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Toàn bộ Hán tự",
+                                        color = TextSecondary,
+                                        fontSize = 14.sp,
+                                        fontFamily = NotoSansJP
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigateToDictionary() },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = InkDark),
+                            border = BorderStroke(1.dp, CardBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "辞書",
+                                    fontSize = 32.sp,
+                                    color = SakuraPink
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        text = "Từ Điển",
+                                        color = TextPrimary,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = NotoSansJP
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Tìm kiếm từ vựng",
                                         color = TextSecondary,
                                         fontSize = 14.sp,
                                         fontFamily = NotoSansJP
