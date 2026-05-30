@@ -17,6 +17,9 @@ import com.group02.mobile.data.model.alphabet.KanaType
 import com.group02.mobile.data.repository.KanaRepository
 import com.group02.mobile.ui.theme.*
 import com.group02.mobile.viewmodel.KanaViewModel
+import com.group02.mobile.viewmodel.CustomPracticeViewModel
+import com.group02.mobile.data.model.alphabet.KanaCharacter
+import com.group02.mobile.data.model.alphabet.KanaRow
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,9 +28,27 @@ fun ChallengeScreen(
     rowId: String,
     kanaType: KanaType,
     viewModel: KanaViewModel,
+    customPracticeViewModel: CustomPracticeViewModel? = null,
     onNavigateBack: () -> Unit
 ) {
-    val row = KanaRepository.getRowById(rowId) ?: return
+    val row = if (rowId == "custom") {
+        val chars = customPracticeViewModel?.currentSession?.value?.selectedVocabularies?.map {
+            KanaCharacter(
+                hiragana = it.hiragana,
+                katakana = it.hiragana,
+                romaji = it.romaji,
+                exampleWord = it.kanji.ifEmpty { it.hiragana },
+                exampleWordRomaji = it.romaji,
+                exampleWordMeaning = it.meaning,
+                exampleWordKatakana = it.kanji.ifEmpty { it.hiragana },
+                exampleWordKatakanaRomaji = it.romaji,
+                exampleWordKatakanaMeaning = it.meaning
+            )
+        } ?: emptyList()
+        KanaRow(rowId = "custom", rowNameDisplay = "Tùy chỉnh", characters = chars)
+    } else {
+        KanaRepository.getRowById(rowId) ?: return
+    }
     val question by viewModel.quizQuestion.collectAsState()
     val score by viewModel.quizScore.collectAsState()
     val totalAnswered by viewModel.quizTotalAnswered.collectAsState()

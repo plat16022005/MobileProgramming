@@ -21,7 +21,8 @@ import com.group02.mobile.ui.theme.*
 @Composable
 fun AlphabetHomeScreen(
     onNavigateBack: () -> Unit,
-    onSelectKanaType: (KanaType) -> Unit
+    onSelectKanaType: (KanaType) -> Unit,
+    onNavigateToCustomPractice: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -80,6 +81,15 @@ fun AlphabetHomeScreen(
                     description = "Bảng chữ cứng, dùng cho các từ mượn tiếng nước ngoài.",
                     iconText = "ア",
                     onClick = { onSelectKanaType(KanaType.KATAKANA) }
+                )
+
+                // Custom Practice Card
+                KanaTypeCard(
+                    title = "Luyện tập Tùy chỉnh",
+                    subtitle = "Custom Practice",
+                    description = "Tự do chọn từ vựng cá nhân để luyện tập qua các chế độ khác nhau.",
+                    iconText = "📝",
+                    onClick = { onNavigateToCustomPractice() }
                 )
             }
         }

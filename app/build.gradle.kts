@@ -88,4 +88,9 @@ dependencies {
     // Image & Networking
     implementation(libs.coil.compose)
     implementation(libs.okhttp)
+
+    // Room
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    annotationProcessor(libs.room.compiler)
 }

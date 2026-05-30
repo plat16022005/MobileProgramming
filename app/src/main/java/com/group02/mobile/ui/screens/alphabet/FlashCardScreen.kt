@@ -20,8 +20,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.group02.mobile.data.model.alphabet.KanaType
 import com.group02.mobile.data.repository.KanaRepository
-import com.group02.mobile.ui.theme.*
 import com.group02.mobile.viewmodel.KanaViewModel
+import com.group02.mobile.viewmodel.CustomPracticeViewModel
+import com.group02.mobile.data.model.alphabet.KanaCharacter
+import com.group02.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,12 +31,32 @@ fun FlashCardScreen(
     rowId: String,
     kanaType: KanaType,
     viewModel: KanaViewModel,
+    customPracticeViewModel: CustomPracticeViewModel? = null,
     onNavigateBack: () -> Unit
 ) {
-    val row = KanaRepository.getRowById(rowId) ?: return
+    val characters = if (rowId == "custom") {
+        customPracticeViewModel?.currentSession?.value?.selectedVocabularies?.map {
+            KanaCharacter(
+                hiragana = it.hiragana,
+                katakana = it.hiragana,
+                romaji = it.romaji,
+                exampleWord = it.kanji.ifEmpty { it.hiragana },
+                exampleWordRomaji = it.romaji,
+                exampleWordMeaning = it.meaning,
+                exampleWordKatakana = it.kanji.ifEmpty { it.hiragana },
+                exampleWordKatakanaRomaji = it.romaji,
+                exampleWordKatakanaMeaning = it.meaning
+            )
+        } ?: emptyList()
+    } else {
+        KanaRepository.getRowById(rowId)?.characters ?: emptyList()
+    }
+    val rowDisplay = if (rowId == "custom") "Tùy chỉnh" else KanaRepository.getRowById(rowId)?.rowNameDisplay ?: ""
+
     val currentIndex by viewModel.currentCardIndex.collectAsState()
     val isFlipped by viewModel.isCardFlipped.collectAsState()
-    val char = row.characters.getOrNull(currentIndex) ?: return
+    if (characters.isEmpty()) return
+    val char = characters.getOrNull(currentIndex) ?: return
 
     Box(
         modifier = Modifier
@@ -50,7 +72,7 @@ fun FlashCardScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Flash Card — ${row.rowNameDisplay}",
+                        text = "Flash Card — $rowDisplay",
                         fontFamily = NotoSansJP,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
@@ -175,14 +197,14 @@ fun FlashCardScreen(
                     }
                     
                     Text(
-                        text = "${currentIndex + 1} / ${row.characters.size}",
+                        text = "${currentIndex + 1} / ${characters.size}",
                         color = TextSecondary,
                         fontFamily = NotoSansJP
                     )
                     
                     Button(
-                        onClick = { viewModel.nextCard() },
-                        enabled = currentIndex < row.characters.size - 1,
+                        onClick = { viewModel.nextCard(characters.size) },
+                        enabled = currentIndex < characters.size - 1,
                         colors = ButtonDefaults.buttonColors(containerColor = NihonRedLight)
                     ) {
                         Text("Tiếp ▶", color = TextPrimary)
