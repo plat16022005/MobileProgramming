@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.group02.mobile.data.remote.JishoService
 import com.group02.mobile.utils.RomajiUtils
 import com.group02.mobile.utils.TranslationUtils
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ data class DictionaryWord(
 
 class DictionaryViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
+    private val jishoService = JishoService()
 
     val levels = listOf("N5", "N4", "N3", "N2", "N1")
 
@@ -75,93 +77,23 @@ class DictionaryViewModel : ViewModel() {
             _isSearching.value = true
             _isLoading.value = true
             _words.value = emptyList()
-            _isEndReached.value = true // Disable pagination during search for simplicity
+            _isEndReached.value = true // Disable pagination during search
 
             try {
-                // Determine if query is Vietnamese and translate it
-                val translatedQuery = TranslationUtils.translateToEnglish(query).lowercase().trim()
-                val queryLower = query.lowercase().trim()
+                // Determine if query is Vietnamese and translate it to English for Jisho
+                val searchTerms = TranslationUtils.translateToEnglish(query).lowercase().trim()
                 
-                // Convert Romaji to Hiragana for better matching
-                val queryAsHiragana = RomajiUtils.toHiragana(queryLower)
+                // Call Jisho API
+                val jishoResults = jishoService.searchWords(searchTerms)
                 
-                // Use a list of terms to search for in meanings
-                val meaningSearchTerms = mutableListOf(translatedQuery)
-                if (translatedQuery != queryLower) {
-                    meaningSearchTerms.addAll(translatedQuery.split(" ").filter { it.length > 2 })
+                if (jishoResults.isEmpty()) {
+                    _words.value = emptyList()
+                    return@launch
                 }
 
-                val allResults = mutableListOf<DictionaryWord>()
-                
-                // Search in all levels
-                coroutineScope {
-                    levels.map { level ->
-                        async {
-                            val collectionName = "TuVung_$level"
-                            val snapshot = db.collection(collectionName).get().await()
-                            
-                            snapshot.documents.mapNotNull { doc ->
-                                val word = doc.toObject(DictionaryWord::class.java) ?: return@mapNotNull null
-                                val wordRomaji = word.romaji.lowercase().trim()
-                                val wordHiragana = word.hiragana.trim()
-                                val wordMeaningsLower = word.meanings.lowercase()
-                                
-                                // Scoring system for relevance
-                                var score = 0
-                                
-                                // 1. Exact matches in Japanese fields (Highest priority)
-                                if (word.word == query || wordHiragana == query || wordHiragana == queryAsHiragana || wordRomaji == queryLower) {
-                                    score += 200
-                                }
-                                
-                                // 2. Exact match in translated meanings
-                                val meaningsList = wordMeaningsLower.split(",").map { it.trim() }
-                                if (meaningsList.any { it == translatedQuery }) {
-                                    score += 150
-                                }
-                                
-                                // 3. Meaning starts with translated query
-                                if (meaningsList.any { it.startsWith(translatedQuery) }) {
-                                    score += 80
-                                }
-
-                                // 4. Starts with in Japanese fields
-                                if (word.word.startsWith(query) || wordHiragana.startsWith(query) || wordHiragana.startsWith(queryAsHiragana) || wordRomaji.startsWith(queryLower)) {
-                                    score += 50
-                                }
-
-                                // 5. Meaning contains search terms
-                                for (term in meaningSearchTerms) {
-                                    if (wordMeaningsLower.contains(term)) {
-                                        score += if (term == translatedQuery) 30 else 10
-                                    }
-                                }
-
-                                // 6. Japanese fields contain query (minimum 2 chars)
-                                if (query.length >= 2) {
-                                    if (word.word.contains(query) || wordHiragana.contains(query) || wordHiragana.contains(queryAsHiragana) || wordRomaji.contains(queryLower)) {
-                                        score += 20
-                                    }
-                                }
-                                
-                                if (score > 0) word to score else null
-                            }
-                        }
-                    }.awaitAll().flatten().let { resultsWithScore ->
-                        // Sort by score descending, remove duplicates, and take top 15
-                        allResults.addAll(
-                            resultsWithScore
-                                .sortedByDescending { it.second }
-                                .map { it.first }
-                                .distinctBy { it.word + it.hiragana }
-                                .take(15)
-                        )
-                    }
-                }
-
-                // Translate results
+                // Translate results back to Vietnamese
                 val translatedResults = coroutineScope {
-                    allResults.distinctBy { it.word + it.hiragana }.map { word ->
+                    jishoResults.take(15).map { word ->
                         async {
                             word.copy(meanings = TranslationUtils.translateMeaningsString(word.meanings))
                         }
