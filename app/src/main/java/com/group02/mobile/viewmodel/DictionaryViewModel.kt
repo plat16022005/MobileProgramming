@@ -21,7 +21,7 @@ data class DictionaryWord(
     val word: String = "",
     val hiragana: String = "",
     val romaji: String = "",
-    val meanings: String = ""
+    val meanings: String = "",
 )
 
 class DictionaryViewModel : ViewModel() {
@@ -36,7 +36,7 @@ class DictionaryViewModel : ViewModel() {
     private val _words = MutableStateFlow<List<DictionaryWord>>(emptyList())
     val words: StateFlow<List<DictionaryWord>> = _words
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(value = false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _error = MutableStateFlow<String?>(null)
@@ -142,7 +142,7 @@ class DictionaryViewModel : ViewModel() {
                     .orderBy(com.google.firebase.firestore.FieldPath.documentId())
                     .limit(pageSize)
 
-                if (!isFirstPage && lastVisibleDocument != null) {
+                if (!isFirstPage && (lastVisibleDocument != null)) {
                     query = query.startAfter(lastVisibleDocument!!)
                 }
 

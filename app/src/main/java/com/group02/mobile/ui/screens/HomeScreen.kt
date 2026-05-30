@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,7 @@ fun HomeScreen(
     onNavigateToAlphabet: () -> Unit,
     onNavigateToKanjiList: () -> Unit,
     onNavigateToDictionary: () -> Unit,
+    onNavigateToNotificationSetting: () -> Unit,
     onSignOut: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -143,6 +145,26 @@ fun HomeScreen(
                                 onClick = {
                                     menuExpanded = false
                                     onNavigateToProfile()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "Nhắc nhở học tập",
+                                        color = NihonRedLight,
+                                        fontFamily = NotoSansJP
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = null,
+                                        tint = SakuraPink
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onNavigateToNotificationSetting()
                                 }
                             )
                             DropdownMenuItem(

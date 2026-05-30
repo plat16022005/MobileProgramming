@@ -18,6 +18,7 @@ import com.group02.mobile.viewmodel.KanaViewModel
 import com.group02.mobile.viewmodel.KanjiViewModel
 import com.group02.mobile.viewmodel.DictionaryViewModel
 import com.group02.mobile.data.model.alphabet.KanaType
+import com.group02.mobile.viewmodel.NotificationViewModel
 
 object AlphabetRoutes {
     const val ALPHABET_HOME = "alphabet_home"
@@ -28,6 +29,8 @@ object AlphabetRoutes {
     const val FLASHCARD = "kana_flashcard/{rowId}/{kanaType}"
     const val QUIZ = "kana_quiz/{rowId}/{kanaType}"
     const val CHALLENGE = "kana_challenge/{rowId}/{kanaType}"
+
+    const val NOTIFICATION_SETTING = "notification_setting"
 }
 
 @Composable
@@ -37,6 +40,7 @@ fun AuthNavGraph() {
     val kanaViewModel: KanaViewModel = viewModel()
     val kanjiViewModel: KanjiViewModel = viewModel()
     val dictionaryViewModel: DictionaryViewModel = viewModel()
+    val notificationViewModel : NotificationViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = AuthScreen.Splash.route
@@ -59,6 +63,17 @@ fun AuthNavGraph() {
                         popUpTo(AuthScreen.Splash.route) { inclusive = true }
                     }
                 }
+            )
+        }
+        // Notification
+        composable(
+            route = AlphabetRoutes.NOTIFICATION_SETTING,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() }
+        ) {
+            NotificationSettingScreen(
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = notificationViewModel
             )
         }
 
@@ -165,6 +180,9 @@ fun AuthNavGraph() {
             enterTransition = { fadeIn(animationSpec = tween(500)) },
             exitTransition = { fadeOut(animationSpec = tween(300)) }
         ) {
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                notificationViewModel.asyncStateSystem()
+            }
             HomeScreen(
                 viewModel = authViewModel,
                 onNavigateToSetupProfile = {
@@ -183,6 +201,9 @@ fun AuthNavGraph() {
                 },
                 onNavigateToDictionary = {
                     navController.navigate(AuthScreen.Dictionary.route)
+                },
+                onNavigateToNotificationSetting = {
+                    navController.navigate(AlphabetRoutes.NOTIFICATION_SETTING)
                 },
 
                 onSignOut = {
