@@ -17,6 +17,7 @@ credentials = "1.5.0"
 googleid = "1.1.1"
 coil = "2.6.0"
 okhttp = "4.12.0"
+mlkit-digital-ink = "18.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,7 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+mlkit-digital-ink = { group = "com.google.mlkit", name = "digital-ink-recognition", version.ref = "mlkit-digital-ink" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

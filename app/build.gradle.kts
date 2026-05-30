@@ -88,4 +88,7 @@ dependencies {
     // Image & Networking
     implementation(libs.coil.compose)
     implementation(libs.okhttp)
+
+    // ML Kit Digital Ink Recognition
+    implementation(libs.mlkit.digital.ink)
 }

@@ -7,7 +7,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,10 +22,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.mlkit.vision.digitalink.Ink
+import kotlinx.coroutines.launch
 import com.group02.mobile.data.model.alphabet.KanaType
 import com.group02.mobile.data.repository.KanaRepository
 import com.group02.mobile.ui.theme.*
 import com.group02.mobile.viewmodel.KanaViewModel
+import com.group02.mobile.utils.DigitalInkManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +44,18 @@ fun WritingPracticeScreen(
     
     val paths = remember { mutableStateListOf<Path>() }
     var currentPath by remember { mutableStateOf<Path?>(null) }
+    
+    // ML Kit Ink Capture
+    val inkBuilder = remember { mutableStateOf<Ink.Builder>(Ink.builder()) }
+    var strokeBuilder by remember { mutableStateOf<Ink.Stroke.Builder>(Ink.Stroke.builder()) }
+    
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var isCorrectFeedback by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        DigitalInkManager.setup("ja")
+    }
 
     Box(
         modifier = Modifier
@@ -69,7 +84,7 @@ fun WritingPracticeScreen(
                         onNavigateBack()
                     }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Quay lại",
                             tint = TextPrimary
                         )
@@ -79,6 +94,9 @@ fun WritingPracticeScreen(
                     IconButton(onClick = {
                         paths.clear()
                         currentPath = null
+                        inkBuilder.value = Ink.builder()
+                        strokeBuilder = Ink.Stroke.builder()
+                        feedbackMessage = null
                     }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -87,7 +105,7 @@ fun WritingPracticeScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = InkDark
                 )
             )
@@ -122,10 +140,13 @@ fun WritingPracticeScreen(
                                     currentPath = Path().apply {
                                         moveTo(offset.x, offset.y)
                                     }
+                                    strokeBuilder = Ink.Stroke.builder()
+                                    strokeBuilder.addPoint(Ink.Point.create(offset.x, offset.y))
                                 },
                                 onDrag = { change, _ ->
                                     val offset = change.position
                                     currentPath?.lineTo(offset.x, offset.y)
+                                    strokeBuilder.addPoint(Ink.Point.create(offset.x, offset.y))
                                     // Trigger recomposition
                                     val tempPath = currentPath
                                     currentPath = null
@@ -134,6 +155,7 @@ fun WritingPracticeScreen(
                                 onDragEnd = {
                                     currentPath?.let { paths.add(it) }
                                     currentPath = null
+                                    inkBuilder.value.addStroke(strokeBuilder.build())
                                 }
                             )
                         }
@@ -179,6 +201,53 @@ fun WritingPracticeScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Feedback Area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    feedbackMessage?.let { msg ->
+                        Text(
+                            text = msg,
+                            color = if (isCorrectFeedback) SuccessGreen else NihonRedLight,
+                            fontSize = 16.sp,
+                            fontFamily = NotoSansJP,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = {
+                        val ink = inkBuilder.value.build()
+                        if (ink.strokes.isNotEmpty()) {
+                            DigitalInkManager.recognize(ink) { recognizedText, _ ->
+                                val target = KanaRepository.getCharacterDisplay(char, kanaType)
+                                isCorrectFeedback = recognizedText == target
+                                
+                                feedbackMessage = if (isCorrectFeedback) {
+                                    "Chính xác! Bạn viết rất tốt."
+                                } else if (recognizedText.isNotEmpty()) {
+                                    "Bạn vừa viết chữ '$recognizedText'. Hãy thử lại nhé."
+                                } else {
+                                    "Chưa nhận diện được. Hãy viết rõ ràng hơn."
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = SakuraPink)
+                ) {
+                    Text("Kiểm tra kết quả", color = InkBlack, fontWeight = FontWeight.Bold)
+                }
+
                 Spacer(modifier = Modifier.weight(1f))
 
                 Row(
@@ -191,6 +260,8 @@ fun WritingPracticeScreen(
                             viewModel.prevWritingChar()
                             paths.clear()
                             currentPath = null
+                            inkBuilder.value = Ink.builder()
+                            feedbackMessage = null
                         },
                         enabled = currentIndex > 0,
                         colors = ButtonDefaults.buttonColors(containerColor = InkDark)
@@ -209,6 +280,8 @@ fun WritingPracticeScreen(
                             viewModel.nextWritingChar(row.characters.size)
                             paths.clear()
                             currentPath = null
+                            inkBuilder.value = Ink.builder()
+                            feedbackMessage = null
                         },
                         enabled = currentIndex < row.characters.size - 1,
                         colors = ButtonDefaults.buttonColors(containerColor = NihonRedLight)

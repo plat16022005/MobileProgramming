@@ -211,7 +211,7 @@ fun DictionaryScreen(
                                     }
                                     IconButton(
                                         onClick = {
-                                            val speakText = if (wordItem.word.isNotEmpty()) wordItem.word else wordItem.hiragana
+                                            val speakText = if (wordItem.hiragana.isNotEmpty()) wordItem.hiragana else wordItem.word
                                             TtsManager.speak(context, speakText, "")
                                         },
                                         modifier = Modifier
