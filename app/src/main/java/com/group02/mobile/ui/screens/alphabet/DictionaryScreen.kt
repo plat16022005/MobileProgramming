@@ -6,9 +6,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.group02.mobile.ui.theme.*
@@ -33,6 +38,8 @@ fun DictionaryScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val isEndReached by viewModel.isEndReached.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
     val context = LocalContext.current
     val listState = rememberLazyListState()
 
@@ -52,7 +59,7 @@ fun DictionaryScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Từ Điển ($currentLevel)",
+                        text = if (searchQuery.isEmpty()) "Từ Điển ($currentLevel)" else "Tìm kiếm",
                         fontFamily = NotoSansJP,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
@@ -69,24 +76,26 @@ fun DictionaryScreen(
                     }
                 },
                 actions = {
-                    Box {
-                        TextButton(onClick = { expanded = true }) {
-                            Text(text = currentLevel, color = SakuraPink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = SakuraPink)
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.background(InkDark)
-                        ) {
-                            viewModel.levels.forEach { level ->
-                                DropdownMenuItem(
-                                    text = { Text(level, color = TextPrimary) },
-                                    onClick = {
-                                        viewModel.setLevel(level)
-                                        expanded = false
-                                    }
-                                )
+                    if (searchQuery.isEmpty()) {
+                        Box {
+                            TextButton(onClick = { expanded = true }) {
+                                Text(text = currentLevel, color = SakuraPink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = SakuraPink)
+                            }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.background(InkDark)
+                            ) {
+                                viewModel.levels.forEach { level ->
+                                    DropdownMenuItem(
+                                        text = { Text(level, color = TextPrimary) },
+                                        onClick = {
+                                            viewModel.setLevel(level)
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -96,9 +105,57 @@ fun DictionaryScreen(
                 )
             )
 
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.onSearchQueryChange(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Tìm kiếm Kanji, Hiragana, Romaji, Nghĩa...", color = TextHint, fontSize = 14.sp) },
+                leadingIcon = { 
+                    IconButton(onClick = { viewModel.performSearch() }) {
+                        Icon(Icons.Default.Search, contentDescription = "Tìm kiếm", tint = SakuraPink)
+                    }
+                },
+                trailingIcon = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isSearching) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                                color = SakuraPink,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Xóa", tint = TextSecondary)
+                            }
+                        }
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { viewModel.performSearch() }),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedBorderColor = SakuraPink,
+                    unfocusedBorderColor = CardBorder,
+                    cursorColor = SakuraPink,
+                    focusedContainerColor = InkDark,
+                    unfocusedContainerColor = InkDark
+                ),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+
             if (error != null && words.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(text = "Lỗi: $error", color = NihonRedLight)
+                }
+            } else if (words.isEmpty() && !isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = if (searchQuery.isEmpty()) "Không có dữ liệu" else "Không tìm thấy kết quả phù hợp", color = TextSecondary)
                 }
             } else {
                 LazyColumn(
@@ -108,8 +165,8 @@ fun DictionaryScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     itemsIndexed(words) { index, wordItem ->
-                        // Request load more when near end
-                        if (index == words.lastIndex && !isLoading && !isEndReached) {
+                        // Request load more when near end (only if not searching)
+                        if (index == words.lastIndex && !isLoading && !isEndReached && searchQuery.isEmpty()) {
                             LaunchedEffect(index) {
                                 viewModel.loadMoreWords()
                             }

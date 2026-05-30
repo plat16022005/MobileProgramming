@@ -12,6 +12,7 @@ import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import com.group02.mobile.data.model.alphabet.KanjiDetail
+import com.group02.mobile.utils.TranslationUtils
 
 class KanjiViewModel : ViewModel() {
     private val _kanjiList = MutableStateFlow<List<String>>(emptyList())
@@ -108,7 +109,7 @@ class KanjiViewModel : ViewModel() {
                             kanji = jsonObject.getString("kanji"),
                             grade = if (jsonObject.isNull("grade")) null else jsonObject.getInt("grade"),
                             strokeCount = if (jsonObject.isNull("stroke_count")) null else jsonObject.getInt("stroke_count"),
-                            meanings = translateToVietnamese(meanings),
+                            meanings = TranslationUtils.translateListToVietnamese(meanings),
                             kunReadings = kunReadings,
                             onReadings = onReadings,
                             jlpt = if (jsonObject.isNull("jlpt")) null else jsonObject.getInt("jlpt"),
@@ -126,34 +127,5 @@ class KanjiViewModel : ViewModel() {
                 _isDetailLoading.value = false
             }
         }
-    }
-
-    private fun translateToVietnamese(texts: List<String>): List<String> {
-        if (texts.isEmpty()) return emptyList()
-        val client = OkHttpClient()
-        val translatedList = mutableListOf<String>()
-        
-        for (text in texts) {
-            try {
-                val url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${java.net.URLEncoder.encode(text, "UTF-8")}"
-                val request = Request.Builder().url(url).build()
-                val response = client.newCall(request).execute()
-                val responseBody = response.body?.string()
-                if (response.isSuccessful && responseBody != null) {
-                    val jsonArray = JSONArray(responseBody)
-                    val segments = jsonArray.getJSONArray(0)
-                    val sb = java.lang.StringBuilder()
-                    for (i in 0 until segments.length()) {
-                        sb.append(segments.getJSONArray(i).getString(0))
-                    }
-                    translatedList.add(sb.toString().lowercase())
-                } else {
-                    translatedList.add(text)
-                }
-            } catch (e: Exception) {
-                translatedList.add(text)
-            }
-        }
-        return translatedList
     }
 }
