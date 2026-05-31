@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
@@ -31,7 +32,8 @@ import com.group02.mobile.utils.TtsManager
 @Composable
 fun DictionaryScreen(
     viewModel: DictionaryViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToMyVocabulary: () -> Unit
 ) {
     val words by viewModel.words.collectAsState()
     val currentLevel by viewModel.currentLevel.collectAsState()
@@ -76,6 +78,13 @@ fun DictionaryScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToMyVocabulary) {
+                        Icon(
+                            imageVector = Icons.Default.LibraryBooks,
+                            contentDescription = "Từ của tôi",
+                            tint = SakuraPink
+                        )
+                    }
                     if (searchQuery.isEmpty()) {
                         Box {
                             TextButton(onClick = { expanded = true }) {

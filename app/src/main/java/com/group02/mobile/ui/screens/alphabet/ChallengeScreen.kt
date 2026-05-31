@@ -11,17 +11,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.group02.mobile.data.model.alphabet.KanaType
 import com.group02.mobile.data.repository.KanaRepository
 import com.group02.mobile.ui.theme.*
 import com.group02.mobile.viewmodel.KanaViewModel
+import com.group02.mobile.viewmodel.SharedPracticeViewModel
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChallengeScreen(
+fun KanaChallengeRoute(
     rowId: String,
     kanaType: KanaType,
     viewModel: KanaViewModel,
@@ -54,6 +55,107 @@ fun ChallengeScreen(
         }
     }
 
+    ChallengeContent(
+        title = "Thử Thách ⏱️",
+        score = score,
+        totalAnswered = totalAnswered,
+        timeLeft = timeLeft,
+        isRunning = isRunning,
+        questionDisplay = question?.displayChar ?: "",
+        questionPrompt = "Chọn cách đọc đúng:",
+        options = question?.options ?: emptyList(),
+        correctAnswer = question?.correctAnswer ?: "",
+        selectedAnswer = selectedAnswer,
+        onOptionSelected = { option ->
+            if (selectedAnswer == null) {
+                selectedAnswer = option
+                flashCorrect = viewModel.submitAnswer(option)
+            }
+        },
+        onRetry = { viewModel.startChallenge(row, kanaType) },
+        onNavigateBack = onNavigateBack
+    )
+}
+
+@Composable
+fun CustomChallengeRoute(
+    viewModel: SharedPracticeViewModel,
+    onNavigateBack: () -> Unit
+) {
+    val question by viewModel.quizQuestion.collectAsState()
+    val score by viewModel.quizScore.collectAsState()
+    val totalAnswered by viewModel.quizTotalAnswered.collectAsState()
+    val timeLeft by viewModel.challengeTimeLeft.collectAsState()
+    val isRunning by viewModel.isChallengeRunning.collectAsState()
+    val vocabularies by viewModel.vocabularies.collectAsState()
+
+    var selectedAnswer by remember { mutableStateOf<String?>(null) }
+    var flashCorrect by remember { mutableStateOf<Boolean?>(null) }
+
+    DisposableEffect(Unit) {
+        if (vocabularies.isNotEmpty()) {
+            viewModel.startChallenge()
+        }
+        onDispose {
+            viewModel.stopChallenge()
+        }
+    }
+
+    LaunchedEffect(flashCorrect) {
+        if (flashCorrect != null) {
+            delay(200)
+            selectedAnswer = null
+            flashCorrect = null
+            viewModel.nextChallengeQuestion()
+        }
+    }
+
+    if (vocabularies.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize().background(InkBlack), contentAlignment = Alignment.Center) {
+            Text("Không có từ vựng nào.", color = TextPrimary)
+        }
+        return
+    }
+
+    ChallengeContent(
+        title = "Thử Thách Cá Nhân ⏱️",
+        score = score,
+        totalAnswered = totalAnswered,
+        timeLeft = timeLeft,
+        isRunning = isRunning,
+        questionDisplay = question?.displayChar ?: "",
+        questionPrompt = "Chọn nghĩa đúng:",
+        options = question?.options ?: emptyList(),
+        correctAnswer = question?.correctAnswer ?: "",
+        selectedAnswer = selectedAnswer,
+        onOptionSelected = { option ->
+            if (selectedAnswer == null) {
+                selectedAnswer = option
+                flashCorrect = viewModel.submitAnswer(option)
+            }
+        },
+        onRetry = { viewModel.startChallenge() },
+        onNavigateBack = onNavigateBack
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChallengeContent(
+    title: String,
+    score: Int,
+    totalAnswered: Int,
+    timeLeft: Int,
+    isRunning: Boolean,
+    questionDisplay: String,
+    questionPrompt: String,
+    options: List<String>,
+    correctAnswer: String,
+    selectedAnswer: String?,
+    onOptionSelected: (String) -> Unit,
+    onRetry: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -68,7 +170,7 @@ fun ChallengeScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Thử Thách ⏱️",
+                        text = title,
                         fontFamily = NotoSansJP,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
@@ -107,7 +209,7 @@ fun ChallengeScreen(
                     
                     Spacer(modifier = Modifier.height(32.dp))
                     Button(
-                        onClick = { viewModel.startChallenge(row, kanaType) },
+                        onClick = onRetry,
                         colors = ButtonDefaults.buttonColors(containerColor = SakuraPink)
                     ) {
                         Text("Chơi Lại", color = InkBlack)
@@ -120,7 +222,7 @@ fun ChallengeScreen(
                         Text("Về Menu")
                     }
                 }
-            } else if (question != null) {
+            } else if (options.isNotEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -143,15 +245,16 @@ fun ChallengeScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = question!!.displayChar,
-                        fontSize = 100.sp,
+                        text = questionDisplay,
+                        fontSize = if (questionDisplay.length > 2) 72.sp else 100.sp,
                         color = SakuraPink,
                         fontFamily = NotoSansJP,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Chọn cách đọc đúng:", color = TextSecondary, fontSize = 16.sp)
+                    Text(questionPrompt, color = TextSecondary, fontSize = 16.sp)
 
                     Spacer(modifier = Modifier.height(32.dp))
 
@@ -160,39 +263,27 @@ fun ChallengeScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                            ChallengeOptionButton(
-                                text = question!!.options[0], selectedAnswer = selectedAnswer, correctAnswer = question!!.correctAnswer, modifier = Modifier.weight(1f)
-                            ) {
-                                if (selectedAnswer == null) {
-                                    selectedAnswer = question!!.options[0]
-                                    flashCorrect = viewModel.submitAnswer(question!!.options[0])
-                                }
+                            if (options.size > 0) {
+                                ChallengeOptionButton(
+                                    text = options[0], selectedAnswer = selectedAnswer, correctAnswer = correctAnswer, modifier = Modifier.weight(1f)
+                                ) { onOptionSelected(options[0]) }
                             }
-                            ChallengeOptionButton(
-                                text = question!!.options[1], selectedAnswer = selectedAnswer, correctAnswer = question!!.correctAnswer, modifier = Modifier.weight(1f)
-                            ) {
-                                if (selectedAnswer == null) {
-                                    selectedAnswer = question!!.options[1]
-                                    flashCorrect = viewModel.submitAnswer(question!!.options[1])
-                                }
+                            if (options.size > 1) {
+                                ChallengeOptionButton(
+                                    text = options[1], selectedAnswer = selectedAnswer, correctAnswer = correctAnswer, modifier = Modifier.weight(1f)
+                                ) { onOptionSelected(options[1]) }
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                            ChallengeOptionButton(
-                                text = question!!.options[2], selectedAnswer = selectedAnswer, correctAnswer = question!!.correctAnswer, modifier = Modifier.weight(1f)
-                            ) {
-                                if (selectedAnswer == null) {
-                                    selectedAnswer = question!!.options[2]
-                                    flashCorrect = viewModel.submitAnswer(question!!.options[2])
-                                }
+                            if (options.size > 2) {
+                                ChallengeOptionButton(
+                                    text = options[2], selectedAnswer = selectedAnswer, correctAnswer = correctAnswer, modifier = Modifier.weight(1f)
+                                ) { onOptionSelected(options[2]) }
                             }
-                            ChallengeOptionButton(
-                                text = question!!.options[3], selectedAnswer = selectedAnswer, correctAnswer = question!!.correctAnswer, modifier = Modifier.weight(1f)
-                            ) {
-                                if (selectedAnswer == null) {
-                                    selectedAnswer = question!!.options[3]
-                                    flashCorrect = viewModel.submitAnswer(question!!.options[3])
-                                }
+                            if (options.size > 3) {
+                                ChallengeOptionButton(
+                                    text = options[3], selectedAnswer = selectedAnswer, correctAnswer = correctAnswer, modifier = Modifier.weight(1f)
+                                ) { onOptionSelected(options[3]) }
                             }
                         }
                     }
@@ -230,14 +321,16 @@ fun ChallengeOptionButton(
         onClick = onClick,
         modifier = modifier.height(64.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor)
+        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
+        contentPadding = PaddingValues(8.dp)
     ) {
         Text(
             text = text,
-            fontSize = 24.sp,
+            fontSize = if (text.length > 8) 16.sp else 24.sp,
             color = TextPrimary,
             fontFamily = NotoSansJP,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
     }
 }

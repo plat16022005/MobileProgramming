@@ -19,6 +19,14 @@ import com.group02.mobile.viewmodel.KanjiViewModel
 import com.group02.mobile.viewmodel.DictionaryViewModel
 import com.group02.mobile.data.model.alphabet.KanaType
 import com.group02.mobile.viewmodel.NotificationViewModel
+import com.group02.mobile.ui.screens.vocabulary.*
+import com.group02.mobile.viewmodel.UserVocabularyViewModel
+import com.group02.mobile.viewmodel.UserVocabularyViewModelFactory
+import com.group02.mobile.viewmodel.CustomPracticeViewModel
+import com.group02.mobile.viewmodel.CustomPracticeViewModelFactory
+import com.group02.mobile.viewmodel.SharedPracticeViewModel
+import android.app.Application
+import androidx.compose.ui.platform.LocalContext
 
 object AlphabetRoutes {
     const val ALPHABET_HOME = "alphabet_home"
@@ -33,6 +41,13 @@ object AlphabetRoutes {
     const val NOTIFICATION_SETTING = "notification_setting"
 }
 
+object CustomPracticeRoutes {
+    const val STUDY = "custom_study"
+    const val FLASHCARD = "custom_flashcard"
+    const val QUIZ = "custom_quiz"
+    const val CHALLENGE = "custom_challenge"
+}
+
 @Composable
 fun AuthNavGraph() {
     val navController = rememberNavController()
@@ -41,6 +56,10 @@ fun AuthNavGraph() {
     val kanjiViewModel: KanjiViewModel = viewModel()
     val dictionaryViewModel: DictionaryViewModel = viewModel()
     val notificationViewModel : NotificationViewModel = viewModel()
+    
+    // Shared Practice ViewModel at NavGraph scope
+    val sharedPracticeViewModel: SharedPracticeViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = AuthScreen.Splash.route
@@ -384,7 +403,7 @@ fun AuthNavGraph() {
             val kanaTypeStr = backStackEntry.arguments?.getString("kanaType") ?: KanaType.HIRAGANA.name
             val kanaType = KanaType.valueOf(kanaTypeStr)
 
-            StudyScreen(
+            KanaStudyRoute(
                 rowId = rowId,
                 kanaType = kanaType,
                 viewModel = kanaViewModel,
@@ -430,7 +449,7 @@ fun AuthNavGraph() {
             val kanaTypeStr = backStackEntry.arguments?.getString("kanaType") ?: KanaType.HIRAGANA.name
             val kanaType = KanaType.valueOf(kanaTypeStr)
 
-            FlashCardScreen(
+            KanaFlashCardRoute(
                 rowId = rowId,
                 kanaType = kanaType,
                 viewModel = kanaViewModel,
@@ -453,7 +472,7 @@ fun AuthNavGraph() {
             val kanaTypeStr = backStackEntry.arguments?.getString("kanaType") ?: KanaType.HIRAGANA.name
             val kanaType = KanaType.valueOf(kanaTypeStr)
 
-            QuizScreen(
+            KanaQuizRoute(
                 rowId = rowId,
                 kanaType = kanaType,
                 viewModel = kanaViewModel,
@@ -476,7 +495,7 @@ fun AuthNavGraph() {
             val kanaTypeStr = backStackEntry.arguments?.getString("kanaType") ?: KanaType.HIRAGANA.name
             val kanaType = KanaType.valueOf(kanaTypeStr)
 
-            ChallengeScreen(
+            KanaChallengeRoute(
                 rowId = rowId,
                 kanaType = kanaType,
                 viewModel = kanaViewModel,
@@ -558,7 +577,99 @@ fun AuthNavGraph() {
                 viewModel = dictionaryViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToMyVocabulary = {
+                    navController.navigate(AuthScreen.MyVocabulary.route)
                 }
+            )
+        }
+
+        // ── My Vocabulary ──────────────────────────────────────────
+        composable(
+            route = AuthScreen.MyVocabulary.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() }
+        ) {
+            val context = LocalContext.current
+            val factory = UserVocabularyViewModelFactory(context.applicationContext as Application)
+            val userVocabViewModel: UserVocabularyViewModel = viewModel(factory = factory)
+            
+            MyVocabularyScreen(
+                viewModel = userVocabViewModel,
+                onNavigateToAddEdit = { id ->
+                    navController.navigate(AuthScreen.AddEditVocabulary.createRoute(id))
+                },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Add/Edit Vocabulary ──────────────────────────────────
+        composable(
+            route = AuthScreen.AddEditVocabulary.route,
+            arguments = listOf(navArgument("vocabularyId") { type = NavType.StringType; nullable = true; defaultValue = null }),
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() }
+        ) { backStackEntry ->
+            val vocabularyId = backStackEntry.arguments?.getString("vocabularyId")?.takeIf { it.isNotBlank() }
+            val context = LocalContext.current
+            val factory = UserVocabularyViewModelFactory(context.applicationContext as Application)
+            val userVocabViewModel: UserVocabularyViewModel = viewModel(factory = factory)
+            
+            AddEditVocabularyScreen(
+                vocabularyId = vocabularyId,
+                viewModel = userVocabViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Custom Practice Setup ──────────────────────────────────
+        composable(
+            route = AuthScreen.CustomPracticeSetup.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() }
+        ) {
+            val context = LocalContext.current
+            val factory = CustomPracticeViewModelFactory(context.applicationContext as Application)
+            val customPracticeViewModel: CustomPracticeViewModel = viewModel(factory = factory)
+            
+            CustomPracticeSetupScreen(
+                viewModel = customPracticeViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onStartPractice = { session ->
+                    sharedPracticeViewModel.initializeSession(session)
+                    when (session.practiceMode) {
+                        com.group02.mobile.data.model.vocabulary.PracticeMode.STUDY -> navController.navigate(CustomPracticeRoutes.STUDY)
+                        com.group02.mobile.data.model.vocabulary.PracticeMode.FLASHCARD -> navController.navigate(CustomPracticeRoutes.FLASHCARD)
+                        com.group02.mobile.data.model.vocabulary.PracticeMode.QUIZ -> navController.navigate(CustomPracticeRoutes.QUIZ)
+                        com.group02.mobile.data.model.vocabulary.PracticeMode.CHALLENGE -> navController.navigate(CustomPracticeRoutes.CHALLENGE)
+                    }
+                }
+            )
+        }
+
+        // ── Custom Practice Routes ──────────────────────────────────
+        composable(CustomPracticeRoutes.STUDY) {
+            CustomStudyRoute(
+                viewModel = sharedPracticeViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(CustomPracticeRoutes.FLASHCARD) {
+            CustomFlashCardRoute(
+                viewModel = sharedPracticeViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(CustomPracticeRoutes.QUIZ) {
+            CustomQuizRoute(
+                viewModel = sharedPracticeViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(CustomPracticeRoutes.CHALLENGE) {
+            CustomChallengeRoute(
+                viewModel = sharedPracticeViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
