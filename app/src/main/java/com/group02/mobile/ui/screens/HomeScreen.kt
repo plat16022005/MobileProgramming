@@ -46,6 +46,7 @@ fun HomeScreen(
     val wordsToReview by reviewViewModel.wordsToReview.collectAsState()
     val newWordsToday by reviewViewModel.newWordsToday.collectAsState()
     val dailyNewWords by reviewViewModel.dailyNewWords.collectAsState()
+    val learnedDailyWordIds by reviewViewModel.learnedDailyWordIds.collectAsState()
     
     val uiState by viewModel.uiState.collectAsState()
     val userAccount = uiState.userAccount
@@ -273,7 +274,7 @@ fun HomeScreen(
                                     horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        val remainingCount = (dailyNewWords.size - newWordsToday).coerceAtLeast(0)
+                                        val remainingCount = (dailyNewWords.size - learnedDailyWordIds.size).coerceAtLeast(0)
                                         Text(
                                             text = "$remainingCount",
                                             color = GoldAccent,
@@ -289,7 +290,7 @@ fun HomeScreen(
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
-                                            text = "$newWordsToday",
+                                            text = "${learnedDailyWordIds.size}",
                                             color = TextPrimary,
                                             fontSize = 24.sp,
                                             fontWeight = FontWeight.Bold
