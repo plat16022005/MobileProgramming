@@ -1,5 +1,6 @@
 package com.group02.mobile.viewmodel
 
+import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.DocumentSnapshot
@@ -17,15 +18,25 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+
+enum class FilterType {
+    ALL, LEARNED, NOT_LEARNED
+}
+
 data class DictionaryWord(
     val word: String = "",
     val hiragana: String = "",
     val romaji: String = "",
     val meanings: String = "",
+    val isLearned: Boolean = false
 )
 
 class DictionaryViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
     private val jishoService = JishoService()
 
     val levels = listOf("N5", "N4", "N3", "N2", "N1")
@@ -34,9 +45,23 @@ class DictionaryViewModel : ViewModel() {
     val currentLevel: StateFlow<String> = _currentLevel
 
     private val _words = MutableStateFlow<List<DictionaryWord>>(emptyList())
-    val words: StateFlow<List<DictionaryWord>> = _words
+    
+    private val _filterType = MutableStateFlow(FilterType.ALL)
+    val filterType: StateFlow<FilterType> = _filterType
+
+    val words: StateFlow<List<DictionaryWord>> = combine(_words, _filterType) { words, filter ->
+        when (filter) {
+            FilterType.ALL -> words
+            FilterType.LEARNED -> words.filter { it.isLearned }
+            FilterType.NOT_LEARNED -> words.filter { !it.isLearned }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _isLoading = MutableStateFlow(value = false)
+// ... rest of the class
+    fun setFilterType(filterType: FilterType) {
+        _filterType.value = filterType
+    }
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _error = MutableStateFlow<String?>(null)
@@ -72,6 +97,51 @@ class DictionaryViewModel : ViewModel() {
         }
     }
 
+    fun toggleLearned(dictionaryWord: DictionaryWord) {
+        val userId = auth.currentUser?.uid ?: return
+        val wordId = dictionaryWord.word.ifEmpty { dictionaryWord.hiragana }
+        if (wordId.isEmpty()) return
+
+        viewModelScope.launch {
+            try {
+                val learnedRef = db.collection("users").document(userId)
+                    .collection("learned_words").document(wordId)
+
+                if (dictionaryWord.isLearned) {
+                    learnedRef.delete().await()
+                } else {
+                    learnedRef.set(mapOf("learned" to true, "timestamp" to System.currentTimeMillis())).await()
+                }
+
+                // Update local state
+                _words.value = _words.value.map {
+                    if ((it.word == dictionaryWord.word && it.word.isNotEmpty()) || 
+                        (it.hiragana == dictionaryWord.hiragana && it.word.isEmpty())) {
+                        it.copy(isLearned = !it.isLearned)
+                    } else {
+                        it
+                    }
+                }
+            } catch (e: Exception) {
+                _error.value = "Không thể cập nhật trạng thái: ${e.message}"
+            }
+        }
+    }
+
+    private suspend fun checkIfLearned(word: String, hiragana: String): Boolean {
+        val userId = auth.currentUser?.uid ?: return false
+        val wordId = word.ifEmpty { hiragana }
+        if (wordId.isEmpty()) return false
+        
+        return try {
+            val doc = db.collection("users").document(userId)
+                .collection("learned_words").document(wordId).get().await()
+            doc.exists()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun searchWords(query: String) {
         viewModelScope.launch {
             _isSearching.value = true
@@ -91,11 +161,15 @@ class DictionaryViewModel : ViewModel() {
                     return@launch
                 }
 
-                // Translate results back to Vietnamese
+                // Translate results back to Vietnamese and check learned status
                 val translatedResults = coroutineScope {
                     jishoResults.take(15).map { word ->
                         async {
-                            word.copy(meanings = TranslationUtils.translateMeaningsString(word.meanings))
+                            val isLearned = checkIfLearned(word.word, word.hiragana)
+                            word.copy(
+                                meanings = TranslationUtils.translateMeaningsString(word.meanings),
+                                isLearned = isLearned
+                            )
                         }
                     }.awaitAll()
                 }
@@ -157,7 +231,11 @@ class DictionaryViewModel : ViewModel() {
                     val newWords = coroutineScope {
                         rawWords.map { word ->
                             async {
-                                word.copy(meanings = TranslationUtils.translateMeaningsString(word.meanings))
+                                val isLearned = checkIfLearned(word.word, word.hiragana)
+                                word.copy(
+                                    meanings = TranslationUtils.translateMeaningsString(word.meanings),
+                                    isLearned = isLearned
+                                )
                             }
                         }.awaitAll()
                     }

@@ -9,15 +9,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.group02.mobile.ui.theme.*
 import com.group02.mobile.viewmodel.DictionaryViewModel
+import com.group02.mobile.viewmodel.FilterType
 import com.group02.mobile.utils.TtsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +41,7 @@ fun DictionaryScreen(
     val isEndReached by viewModel.isEndReached.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+    val filterType by viewModel.filterType.collectAsState()
     val context = LocalContext.current
     val listState = rememberLazyListState()
 
@@ -69,7 +71,7 @@ fun DictionaryScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Quay lại",
                             tint = TextPrimary
                         )
@@ -100,7 +102,7 @@ fun DictionaryScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = InkDark
                 )
             )
@@ -149,13 +151,84 @@ fun DictionaryScreen(
                 shape = RoundedCornerShape(12.dp)
             )
 
+            // Filters
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = filterType == FilterType.ALL,
+                    onClick = { viewModel.setFilterType(FilterType.ALL) },
+                    label = { Text("Tất cả", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = SakuraPink,
+                        selectedLabelColor = Color.White,
+                        containerColor = InkDark,
+                        labelColor = TextSecondary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = CardBorder,
+                        selectedBorderColor = SakuraPink,
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 1.dp,
+                        enabled = true,
+                        selected = filterType == FilterType.ALL
+                    )
+                )
+                FilterChip(
+                    selected = filterType == FilterType.LEARNED,
+                    onClick = { viewModel.setFilterType(FilterType.LEARNED) },
+                    label = { Text("Đã thuộc", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = SuccessGreen,
+                        selectedLabelColor = Color.White,
+                        containerColor = InkDark,
+                        labelColor = TextSecondary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = CardBorder,
+                        selectedBorderColor = SuccessGreen,
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 1.dp,
+                        enabled = true,
+                        selected = filterType == FilterType.LEARNED
+                    )
+                )
+                FilterChip(
+                    selected = filterType == FilterType.NOT_LEARNED,
+                    onClick = { viewModel.setFilterType(FilterType.NOT_LEARNED) },
+                    label = { Text("Chưa thuộc", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = NihonRedLight,
+                        selectedLabelColor = Color.White,
+                        containerColor = InkDark,
+                        labelColor = TextSecondary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = CardBorder,
+                        selectedBorderColor = NihonRedLight,
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 1.dp,
+                        enabled = true,
+                        selected = filterType == FilterType.NOT_LEARNED
+                    )
+                )
+            }
+
             if (error != null && words.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(text = "Lỗi: $error", color = NihonRedLight)
                 }
             } else if (words.isEmpty() && !isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = if (searchQuery.isEmpty()) "Không có dữ liệu" else "Không tìm thấy kết quả phù hợp", color = TextSecondary)
+                    val emptyMessage = when (filterType) {
+                        FilterType.ALL -> if (searchQuery.isEmpty()) "Không có dữ liệu" else "Không tìm thấy kết quả phù hợp"
+                        FilterType.LEARNED -> "Bạn chưa thuộc từ nào trong danh sách này"
+                        FilterType.NOT_LEARNED -> "Tất cả các từ hiện tại bạn đều đã thuộc!"
+                    }
+                    Text(text = emptyMessage, color = TextSecondary)
                 }
             } else {
                 LazyColumn(
@@ -209,20 +282,37 @@ fun DictionaryScreen(
                                             )
                                         }
                                     }
-                                    IconButton(
-                                        onClick = {
-                                            val speakText = if (wordItem.hiragana.isNotEmpty()) wordItem.hiragana else wordItem.word
-                                            TtsManager.speak(context, speakText, "")
-                                        },
-                                        modifier = Modifier
-                                            .background(InkBlack, RoundedCornerShape(50))
-                                            .padding(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.VolumeUp,
-                                            contentDescription = "Phát âm",
-                                            tint = SakuraPink
-                                        )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(
+                                            onClick = { viewModel.toggleLearned(wordItem) },
+                                            modifier = Modifier
+                                                .padding(end = 8.dp)
+                                                .background(
+                                                    if (wordItem.isLearned) SuccessGreen.copy(alpha = 0.2f) else InkBlack,
+                                                    RoundedCornerShape(50)
+                                                )
+                                        ) {
+                                            Icon(
+                                                imageVector = if (wordItem.isLearned) Icons.Default.CheckCircle else Icons.Outlined.CheckCircle,
+                                                contentDescription = "Đã thuộc",
+                                                tint = if (wordItem.isLearned) SuccessGreen else TextHint
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                val speakText = if (wordItem.hiragana.isNotEmpty()) wordItem.hiragana else wordItem.word
+                                                TtsManager.speak(context, speakText, "")
+                                            },
+                                            modifier = Modifier
+                                                .background(InkBlack, RoundedCornerShape(50))
+                                                .padding(4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                                contentDescription = "Phát âm",
+                                                tint = SakuraPink
+                                            )
+                                        }
                                     }
                                 }
                                 
