@@ -67,7 +67,7 @@ class DictionaryViewModel : ViewModel() {
 
     fun performSearch() {
         val query = _searchQuery.value
-        if (query.length >= 2) {
+        if (query.isNotEmpty()) {
             searchWords(query)
         }
     }
