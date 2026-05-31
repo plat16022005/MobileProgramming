@@ -4,6 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,10 +15,12 @@ import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.group02.mobile.ui.screens.*
 import com.group02.mobile.ui.screens.alphabet.*
+import com.group02.mobile.ui.screens.grammar.*
 import com.group02.mobile.viewmodel.AuthViewModel
 import com.group02.mobile.viewmodel.KanaViewModel
 import com.group02.mobile.viewmodel.KanjiViewModel
 import com.group02.mobile.viewmodel.DictionaryViewModel
+import com.group02.mobile.viewmodel.GrammarViewModel
 import com.group02.mobile.data.model.alphabet.KanaType
 import com.group02.mobile.viewmodel.NotificationViewModel
 
@@ -41,6 +45,7 @@ fun AuthNavGraph() {
     val kanjiViewModel: KanjiViewModel = viewModel()
     val dictionaryViewModel: DictionaryViewModel = viewModel()
     val notificationViewModel : NotificationViewModel = viewModel()
+    val grammarViewModel: GrammarViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = AuthScreen.Splash.route
@@ -211,6 +216,9 @@ fun AuthNavGraph() {
                 onNavigateToDailyLesson = {
                     navController.navigate(AuthScreen.DailyLesson.route)
                 },
+                onNavigateToGrammarList = {
+                    navController.navigate(AuthScreen.GrammarList.route)
+                },
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate(AuthScreen.Login.route) {
@@ -218,6 +226,64 @@ fun AuthNavGraph() {
                     }
                 }
             )
+        }
+
+        // ── Grammar List (Level Picker) ───────────────────────────
+        composable(
+            route = AuthScreen.GrammarList.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+        ) {
+            GrammarListScreen(
+                viewModel = grammarViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToLevel = { level ->
+                    navController.navigate(AuthScreen.GrammarLevel.createRoute(level))
+                }
+            )
+        }
+
+        // ── Grammar Level (list of grammar for one level) ─────────
+        composable(
+            route = AuthScreen.GrammarLevel.route,
+            arguments = listOf(navArgument("level") { type = NavType.StringType }),
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+        ) { backStackEntry ->
+            val level = backStackEntry.arguments?.getString("level") ?: "N5"
+            GrammarLevelScreen(
+                level = level,
+                viewModel = grammarViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onGrammarClick = { grammar ->
+                    navController.navigate(AuthScreen.GrammarDetail.createRoute(grammar.title))
+                }
+            )
+        }
+
+        // ── Grammar Detail ────────────────────────────────────────
+        composable(
+            route = AuthScreen.GrammarDetail.route,
+            arguments = listOf(navArgument("title") { type = NavType.StringType }),
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+        ) { backStackEntry ->
+            val title = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", "UTF-8")
+            val grammarList by grammarViewModel.grammarList.collectAsState()
+            val grammar = grammarList.find { it.title == title }
+
+            if (grammar != null) {
+                GrammarDetailScreen(
+                    grammar = grammar,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
 
         // ── Setup Profile ───────────────────────────────────────

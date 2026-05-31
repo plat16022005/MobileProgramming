@@ -40,6 +40,7 @@ fun HomeScreen(
     onNavigateToNotificationSetting: () -> Unit,
     onNavigateToReview: () -> Unit,
     onNavigateToDailyLesson: () -> Unit,
+    onNavigateToGrammarList: () -> Unit,
     onSignOut: () -> Unit
 ) {
     val reviewViewModel: com.group02.mobile.viewmodel.ReviewViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -468,6 +469,46 @@ fun HomeScreen(
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "Tìm kiếm từ vựng",
+                                        color = TextSecondary,
+                                        fontSize = 14.sp,
+                                        fontFamily = NotoSansJP
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigateToGrammarList() },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = InkDark),
+                            border = BorderStroke(1.dp, CardBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "文法",
+                                    fontSize = 32.sp,
+                                    color = SakuraPink
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        text = "Ngữ pháp",
+                                        color = TextPrimary,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = NotoSansJP
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Ngữ pháp JLPT N5 - N1",
                                         color = TextSecondary,
                                         fontSize = 14.sp,
                                         fontFamily = NotoSansJP
