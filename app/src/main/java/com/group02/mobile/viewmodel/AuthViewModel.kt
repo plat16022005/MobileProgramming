@@ -20,6 +20,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
+import com.group02.mobile.model.UserProgress
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import android.util.Log
 
 data class AuthUiState(
     val isLoading: Boolean = false,
@@ -28,6 +32,7 @@ data class AuthUiState(
     val isLoggedIn: Boolean = false,
     val userAccount: UserAccount? = null,
     val userProfile: UserProfile? = null,
+    val userProgress: UserProgress? = null,
     val hasPasswordProvider: Boolean = false
 )
 
@@ -356,6 +361,47 @@ class AuthViewModel : ViewModel() {
             
             _isUploadingAvatar.value = false
         }
+    }
+
+    fun fetchUserProgress() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val db = FirebaseFirestore.getInstance()
+
+        Log.d("UserProgress", "Current UID: $uid")
+
+        db.collection("user_progress")
+            .document(uid)
+            .get()
+            .addOnSuccessListener { document ->
+                Log.d("UserProgress", "Document exists: ${document.exists()}")
+                Log.d("UserProgress", "Data: ${document.data}")
+
+                val progress = UserProgress(
+                    learnedWordsCount = (document.get("learnedWordsCount") as? Number)?.toLong() ?: 0,
+                    streakDays = (document.get("streakDays") as? Number)?.toLong() ?: 0,
+                    accuracy = (document.get("accuracy") as? Number)?.toDouble() ?: 0.0,
+                    correctAnswers = (document.get("correctAnswers") as? Number)?.toLong() ?: 0,
+                    totalAnswers = (document.get("totalAnswers") as? Number)?.toLong() ?: 0,
+                    learnedN1Count = (document.get("learnedN1Count") as? Number)?.toLong() ?: 0,
+                    learnedN2Count = (document.get("learnedN2Count") as? Number)?.toLong() ?: 0,
+                    learnedN3Count = (document.get("learnedN3Count") as? Number)?.toLong() ?: 0,
+                    learnedN4Count = (document.get("learnedN4Count") as? Number)?.toLong() ?: 0,
+                    learnedN5Count = (document.get("learnedN5Count") as? Number)?.toLong() ?: 0
+                )
+
+                Log.d("UserProgress", "Mapped progress: $progress")
+
+                _uiState.value = _uiState.value.copy(
+                    userProgress = progress
+                )
+            }
+            .addOnFailureListener { exception ->
+                Log.e("UserProgress", "Fetch failed", exception)
+
+                _uiState.value = _uiState.value.copy(
+                    userProgress = UserProgress()
+                )
+            }
     }
 
 }

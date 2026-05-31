@@ -37,11 +37,18 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val userAccount = uiState.userAccount
     val userProfile = uiState.userProfile
+    val userProgress = uiState.userProgress
+
+    val learnedWordsCount = userProgress?.learnedWordsCount ?: 0
+    val streakDays = userProgress?.streakDays ?: 0
+    val accuracy = userProgress?.accuracy ?: 0.0
+
     var menuExpanded by remember { mutableStateOf(false) }
 
     // Fetch user profile when entering home
     LaunchedEffect(Unit) {
         viewModel.fetchUserProfile()
+        viewModel.fetchUserProgress()
     }
 
     // Check if profile is completed (profileCompleted lives in UserAccount)
@@ -203,6 +210,47 @@ fun HomeScreen(
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = InkDark),
+                            border = BorderStroke(1.dp, CardBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ProgressItem(
+                                    title = "Từ đã học",
+                                    value = "$learnedWordsCount"
+                                )
+
+                                ProgressItem(
+                                    title = "Streak",
+                                    value = "$streakDays ngày"
+                                )
+
+                                ProgressItem(
+                                    title = "Accuracy",
+                                    value = "${accuracy.toInt()}%"
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "日本語を楽しく学ぼう",
+                            fontSize = 14.sp,
+                            color = TextSecondary,
+                            fontFamily = NotoSansJP,
+                            letterSpacing = 2.sp
+                        )
+
                         Text(
                             text = "日本語を楽しく学ぼう",
                             fontSize = 14.sp,
@@ -262,5 +310,32 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+@Composable
+fun ProgressItem(
+    title: String,
+    value: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            color = TextPrimary,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = NotoSansJP
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = title,
+            color = TextSecondary,
+            fontSize = 12.sp,
+            fontFamily = NotoSansJP,
+            textAlign = TextAlign.Center
+        )
     }
 }
