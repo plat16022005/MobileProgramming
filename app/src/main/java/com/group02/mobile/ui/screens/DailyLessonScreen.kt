@@ -58,15 +58,16 @@ fun DailyLessonScreen(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Từ mới hôm nay",
+                            text = "Từ cần học hôm nay",
                             fontFamily = NotoSansJP,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
                             fontSize = 20.sp
                         )
                         if (totalCount > 0) {
+                            val remainingCount = totalCount - learnedCount
                             Text(
-                                text = "$learnedCount / $totalCount đã thuộc",
+                                text = "Còn $remainingCount từ chưa thuộc",
                                 color = GoldAccent,
                                 fontSize = 13.sp,
                                 fontFamily = NotoSansJP

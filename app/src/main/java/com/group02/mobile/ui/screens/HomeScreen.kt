@@ -273,16 +273,18 @@ fun HomeScreen(
                                     horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        val remainingCount = (dailyNewWords.size - newWordsToday).coerceAtLeast(0)
                                         Text(
-                                            text = "${dailyNewWords.size}",
+                                            text = "$remainingCount",
                                             color = GoldAccent,
                                             fontSize = 24.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Từ mới hôm nay",
+                                            text = "Từ cần học hôm nay",
                                             color = TextSecondary,
-                                            fontSize = 12.sp
+                                            fontSize = 12.sp,
+                                            textAlign = TextAlign.Center
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {

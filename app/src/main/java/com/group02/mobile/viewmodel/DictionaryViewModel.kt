@@ -116,8 +116,19 @@ class DictionaryViewModel : ViewModel() {
         }
     }
 
+    private fun nextReviewTimeAt6AM(days: Int): Long {
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.DAY_OF_YEAR, days)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 6)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+
     fun toggleLearned(dictionaryWord: DictionaryWord) {
         val userId = auth.currentUser?.uid ?: return
+        // Standard ID: use word, or hiragana if word is empty
         val wordId = dictionaryWord.word.ifEmpty { dictionaryWord.hiragana }
         if (wordId.isEmpty()) return
 
@@ -129,6 +140,7 @@ class DictionaryViewModel : ViewModel() {
                 if (dictionaryWord.isLearned) {
                     learnedRef.delete().await()
                 } else {
+                    val nextReview = nextReviewTimeAt6AM(1) // Set to 6 AM tomorrow
                     val data = mapOf(
                         "wordId" to wordId,
                         "word" to dictionaryWord.word,
@@ -138,9 +150,10 @@ class DictionaryViewModel : ViewModel() {
                         "learned" to true, 
                         "timestamp" to System.currentTimeMillis(),
                         "repetition" to 0,
-                        "interval" to 0,
+                        "interval" to 1,
                         "easeFactor" to 2.5f,
-                        "nextReviewTime" to System.currentTimeMillis() // Ready to review immediately
+                        "nextReviewTime" to nextReview,
+                        "isMastered" to false
                     )
                     learnedRef.set(data).await()
                 }

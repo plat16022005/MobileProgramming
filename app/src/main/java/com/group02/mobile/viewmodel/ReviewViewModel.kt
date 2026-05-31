@@ -147,12 +147,20 @@ class ReviewViewModel : ViewModel() {
                     @Suppress("UNCHECKED_CAST")
                     val savedIds = planDoc.get("wordIds") as? List<String> ?: emptyList()
                     val level = planDoc.getString("level") ?: "N5"
-                    // Also figure out which of these are already learned
+                    
+                    val words = fetchWordsByIds(level, savedIds)
+                    
                     val learnedSnap = db.collection("users").document(userId)
                         .collection("learned_words").get().await()
-                    val learnedIds = learnedSnap.documents.map { it.id }.toSet()
-                    _learnedDailyWordIds.value = savedIds.filter { it in learnedIds }.toSet()
-                    _dailyNewWords.value = fetchWordsByIds(level, savedIds)
+                    val learnedWordsSet = learnedSnap.documents.map { it.id }.toSet()
+                    
+                    // Match by checking if the word's text (word or hiragana) is in the learned set
+                    _learnedDailyWordIds.value = words.filter { 
+                        val textId = it.word.ifEmpty { it.hiragana }
+                        textId in learnedWordsSet
+                    }.map { it.wordId }.toSet()
+                    
+                    _dailyNewWords.value = words
                     return@launch
                 }
 
@@ -161,10 +169,10 @@ class ReviewViewModel : ViewModel() {
                 val studyLevel = profileDoc.getString("studyLevel") ?: "N5"
                 val normalizedLevel = normalizeLevel(studyLevel)
 
-                // 3. Get already-learned word IDs
+                // 3. Get already-learned word text (the new IDs)
                 val learnedSnapshot = db.collection("users").document(userId)
                     .collection("learned_words").get().await()
-                val learnedIds = learnedSnapshot.documents.map { it.id }.toSet()
+                val learnedWordsSet = learnedSnapshot.documents.map { it.id }.toSet()
 
                 // 4. Find the most recent previous daily plan (for carry-over)
                 val previousPlansSnapshot = db.collection("users").document(userId)
@@ -181,8 +189,13 @@ class ReviewViewModel : ViewModel() {
                     @Suppress("UNCHECKED_CAST")
                     val prevWordIds = prevPlan.get("wordIds") as? List<String> ?: emptyList()
                     previousLevel = prevPlan.getString("level") ?: normalizedLevel
-                    // Unfinished = in previous plan but NOT yet in learned_words
-                    unfinishedIds.addAll(prevWordIds.filter { it !in learnedIds })
+                    
+                    // To filter unfinished, we must first know what those IDs represent
+                    val prevWords = fetchWordsByIds(previousLevel, prevWordIds)
+                    unfinishedIds.addAll(prevWords.filter { 
+                        val textId = it.word.ifEmpty { it.hiragana }
+                        textId !in learnedWordsSet
+                    }.map { it.wordId })
                 }
 
                 // 5. How many slots are left for new words?
@@ -195,10 +208,8 @@ class ReviewViewModel : ViewModel() {
 
                 // 7. Pick fresh random words to fill remaining slots
                 val newWords = if (newSlotsNeeded > 0) {
-                    val excludeIds = learnedIds + unfinishedIds.toSet()
                     val vocabSnapshot = db.collection("TuVung_$normalizedLevel").get().await()
                     val rawNewWords = vocabSnapshot.documents
-                        .filter { it.id !in excludeIds }
                         .map { doc ->
                             SrsData(
                                 wordId = doc.id,
@@ -207,6 +218,11 @@ class ReviewViewModel : ViewModel() {
                                 romaji = doc.getString("romaji") ?: "",
                                 meanings = doc.getString("meanings") ?: ""
                             )
+                        }
+                        // Exclude if already learned (check by word text) or already in unfinished
+                        .filter { 
+                            val textId = it.word.ifEmpty { it.hiragana }
+                            textId !in learnedWordsSet && it.wordId !in unfinishedIds 
                         }
                         .shuffled()
                         .take(newSlotsNeeded)
@@ -393,9 +409,13 @@ class ReviewViewModel : ViewModel() {
         val userId = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             try {
+                // Consistent ID: use word itself (or hiragana) instead of the random doc.id
+                val wordId = word.word.ifEmpty { word.hiragana }
+                if (wordId.isEmpty()) return@launch
+
                 val nextReview = nextReviewTimeAt6AM(1)
                 val data = mapOf(
-                    "wordId"         to word.wordId,
+                    "wordId"         to wordId,
                     "word"           to word.word,
                     "hiragana"       to word.hiragana,
                     "romaji"         to word.romaji,
@@ -410,11 +430,12 @@ class ReviewViewModel : ViewModel() {
                 )
                 db.collection("users").document(userId)
                     .collection("learned_words")
-                    .document(word.wordId)
+                    .document(wordId) // Use the standard wordId here
                     .set(data)
                     .await()
 
-                // Update in-memory learned set and counter
+                // Update in-memory learned set and counter using the original ID from the daily plan
+                // to maintain UI state, but the Firestore document will now use the word as ID.
                 _learnedDailyWordIds.value = _learnedDailyWordIds.value + word.wordId
                 _newWordsToday.value = _newWordsToday.value + 1
             } catch (e: Exception) {
