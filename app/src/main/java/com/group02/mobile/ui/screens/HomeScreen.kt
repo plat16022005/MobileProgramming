@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,8 +38,15 @@ fun HomeScreen(
     onNavigateToKanjiList: () -> Unit,
     onNavigateToDictionary: () -> Unit,
     onNavigateToNotificationSetting: () -> Unit,
+    onNavigateToReview: () -> Unit,
+    onNavigateToDailyLesson: () -> Unit,
     onSignOut: () -> Unit
 ) {
+    val reviewViewModel: com.group02.mobile.viewmodel.ReviewViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val wordsToReview by reviewViewModel.wordsToReview.collectAsState()
+    val newWordsToday by reviewViewModel.newWordsToday.collectAsState()
+    val dailyNewWords by reviewViewModel.dailyNewWords.collectAsState()
+    
     val uiState by viewModel.uiState.collectAsState()
     val userAccount = uiState.userAccount
     val userProfile = uiState.userProfile
@@ -46,6 +55,8 @@ fun HomeScreen(
     // Fetch user profile when entering home
     LaunchedEffect(Unit) {
         viewModel.fetchUserProfile()
+        reviewViewModel.fetchDailyPlan()
+        reviewViewModel.fetchDailyNewWords()
     }
 
     // Check if profile is completed (profileCompleted lives in UserAccount)
@@ -200,7 +211,9 @@ fun HomeScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp)
+                            .verticalScroll(rememberScrollState())
                     ) {
                         Text(
                             text = "日",
@@ -235,14 +248,109 @@ fun HomeScreen(
                             letterSpacing = 2.sp
                         )
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "(Hệ thống học tập đang được hoàn thiện)",
-                            fontSize = 12.sp,
-                            color = TextHint,
-                            fontFamily = NotoSansJP,
-                            textAlign = TextAlign.Center
-                        )     
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = InkDark),
+                            border = BorderStroke(1.dp, CardBorder)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "Kế hoạch học tập hôm nay",
+                                    color = SakuraPink,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = NotoSansJP
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                // Row 1: stats
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "${dailyNewWords.size}",
+                                            color = GoldAccent,
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Từ mới hôm nay",
+                                            color = TextSecondary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "$newWordsToday",
+                                            color = TextPrimary,
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Đã học",
+                                            color = TextSecondary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "${wordsToReview.size}",
+                                            color = NihonRedLight,
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Cần ôn",
+                                            color = TextSecondary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                // Row 2: action buttons
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = onNavigateToDailyLesson,
+                                        enabled = dailyNewWords.isNotEmpty(),
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = GoldAccent,
+                                            contentColor = InkDark,
+                                            disabledContainerColor = InkLight,
+                                            disabledContentColor = TextSecondary
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Học từ mới", fontWeight = FontWeight.Bold)
+                                    }
+                                    Button(
+                                        onClick = onNavigateToReview,
+                                        enabled = wordsToReview.isNotEmpty(),
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = NihonRedLight,
+                                            contentColor = TextPrimary,
+                                            disabledContainerColor = InkLight,
+                                            disabledContentColor = TextSecondary
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Ôn tập", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
                         
                         Card(
                             modifier = Modifier

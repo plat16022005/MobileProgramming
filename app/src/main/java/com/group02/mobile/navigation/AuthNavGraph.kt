@@ -205,7 +205,12 @@ fun AuthNavGraph() {
                 onNavigateToNotificationSetting = {
                     navController.navigate(AlphabetRoutes.NOTIFICATION_SETTING)
                 },
-
+                onNavigateToReview = {
+                    navController.navigate(AuthScreen.Review.route)
+                },
+                onNavigateToDailyLesson = {
+                    navController.navigate(AuthScreen.DailyLesson.route)
+                },
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate(AuthScreen.Login.route) {
@@ -556,6 +561,55 @@ fun AuthNavGraph() {
         ) {
             DictionaryScreen(
                 viewModel = dictionaryViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // ── Review SRS ────────────────────────────────────────────
+        composable(
+            route = AuthScreen.Review.route,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeIn(animationSpec = tween(350))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeOut(animationSpec = tween(350))
+            }
+        ) {
+            val reviewViewModel: com.group02.mobile.viewmodel.ReviewViewModel = viewModel()
+            ReviewScreen(
+                viewModel = reviewViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        // ── Daily Lesson (20 new words/day) ──────────────────────
+        composable(
+            route = AuthScreen.DailyLesson.route,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeIn(animationSpec = tween(350))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(350)
+                ) + fadeOut(animationSpec = tween(350))
+            }
+        ) {
+            val reviewViewModel: com.group02.mobile.viewmodel.ReviewViewModel = viewModel()
+            com.group02.mobile.ui.screens.DailyLessonScreen(
+                viewModel = reviewViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

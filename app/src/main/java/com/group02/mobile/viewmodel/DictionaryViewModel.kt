@@ -46,22 +46,25 @@ class DictionaryViewModel : ViewModel() {
 
     private val _words = MutableStateFlow<List<DictionaryWord>>(emptyList())
     
+    // Real-time learned word IDs
+    private val _learnedWordIds = MutableStateFlow<Set<String>>(emptySet())
+
     private val _filterType = MutableStateFlow(FilterType.ALL)
     val filterType: StateFlow<FilterType> = _filterType
 
-    val words: StateFlow<List<DictionaryWord>> = combine(_words, _filterType) { words, filter ->
+    val words: StateFlow<List<DictionaryWord>> = combine(_words, _learnedWordIds, _filterType) { words, learnedIds, filter ->
+        val updatedWords = words.map { 
+            val id = it.word.ifEmpty { it.hiragana }
+            it.copy(isLearned = id in learnedIds)
+        }
         when (filter) {
-            FilterType.ALL -> words
-            FilterType.LEARNED -> words.filter { it.isLearned }
-            FilterType.NOT_LEARNED -> words.filter { !it.isLearned }
+            FilterType.ALL -> updatedWords
+            FilterType.LEARNED -> updatedWords.filter { it.isLearned }
+            FilterType.NOT_LEARNED -> updatedWords.filter { !it.isLearned }
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _isLoading = MutableStateFlow(value = false)
-// ... rest of the class
-    fun setFilterType(filterType: FilterType) {
-        _filterType.value = filterType
-    }
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _error = MutableStateFlow<String?>(null)
@@ -80,7 +83,23 @@ class DictionaryViewModel : ViewModel() {
     private val pageSize = 10L
 
     init {
+        observeLearnedWords()
         loadWords(isFirstPage = true)
+    }
+
+    private fun observeLearnedWords() {
+        val userId = auth.currentUser?.uid ?: return
+        db.collection("users").document(userId)
+            .collection("learned_words")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val ids = snapshot?.documents?.map { it.id }?.toSet() ?: emptySet()
+                _learnedWordIds.value = ids
+            }
+    }
+
+    fun setFilterType(filterType: FilterType) {
+        _filterType.value = filterType
     }
 
     fun onSearchQueryChange(query: String) {
@@ -110,35 +129,24 @@ class DictionaryViewModel : ViewModel() {
                 if (dictionaryWord.isLearned) {
                     learnedRef.delete().await()
                 } else {
-                    learnedRef.set(mapOf("learned" to true, "timestamp" to System.currentTimeMillis())).await()
-                }
-
-                // Update local state
-                _words.value = _words.value.map {
-                    if ((it.word == dictionaryWord.word && it.word.isNotEmpty()) || 
-                        (it.hiragana == dictionaryWord.hiragana && it.word.isEmpty())) {
-                        it.copy(isLearned = !it.isLearned)
-                    } else {
-                        it
-                    }
+                    val data = mapOf(
+                        "wordId" to wordId,
+                        "word" to dictionaryWord.word,
+                        "hiragana" to dictionaryWord.hiragana,
+                        "romaji" to dictionaryWord.romaji,
+                        "meanings" to dictionaryWord.meanings,
+                        "learned" to true, 
+                        "timestamp" to System.currentTimeMillis(),
+                        "repetition" to 0,
+                        "interval" to 0,
+                        "easeFactor" to 2.5f,
+                        "nextReviewTime" to System.currentTimeMillis() // Ready to review immediately
+                    )
+                    learnedRef.set(data).await()
                 }
             } catch (e: Exception) {
                 _error.value = "Không thể cập nhật trạng thái: ${e.message}"
             }
-        }
-    }
-
-    private suspend fun checkIfLearned(word: String, hiragana: String): Boolean {
-        val userId = auth.currentUser?.uid ?: return false
-        val wordId = word.ifEmpty { hiragana }
-        if (wordId.isEmpty()) return false
-        
-        return try {
-            val doc = db.collection("users").document(userId)
-                .collection("learned_words").document(wordId).get().await()
-            doc.exists()
-        } catch (e: Exception) {
-            false
         }
     }
 
@@ -161,14 +169,12 @@ class DictionaryViewModel : ViewModel() {
                     return@launch
                 }
 
-                // Translate results back to Vietnamese and check learned status
+                // Translate results back to Vietnamese
                 val translatedResults = coroutineScope {
                     jishoResults.take(15).map { word ->
                         async {
-                            val isLearned = checkIfLearned(word.word, word.hiragana)
                             word.copy(
-                                meanings = TranslationUtils.translateMeaningsString(word.meanings),
-                                isLearned = isLearned
+                                meanings = TranslationUtils.translateMeaningsString(word.meanings)
                             )
                         }
                     }.awaitAll()
@@ -231,10 +237,8 @@ class DictionaryViewModel : ViewModel() {
                     val newWords = coroutineScope {
                         rawWords.map { word ->
                             async {
-                                val isLearned = checkIfLearned(word.word, word.hiragana)
                                 word.copy(
-                                    meanings = TranslationUtils.translateMeaningsString(word.meanings),
-                                    isLearned = isLearned
+                                    meanings = TranslationUtils.translateMeaningsString(word.meanings)
                                 )
                             }
                         }.awaitAll()

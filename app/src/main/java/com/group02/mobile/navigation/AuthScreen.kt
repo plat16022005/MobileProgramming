@@ -14,4 +14,6 @@ sealed class AuthScreen(val route: String) {
         fun createRoute(kanji: String) = "kanji_detail/$kanji"
     }
     object Dictionary : AuthScreen("dictionary")
+    object Review : AuthScreen("review")
+    object DailyLesson : AuthScreen("daily_lesson")
 }
